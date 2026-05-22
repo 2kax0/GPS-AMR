@@ -31,6 +31,9 @@ antibiotic_tidying <- read.csv(file = "antibiotic.csv")
 metadata$Continent <- ifelse(metadata$Country %in% "NIGERIA" & is.na(metadata$Continent), "AFRICA",
                              ifelse(metadata$Country %in% "THAILAND" & is.na(metadata$Continent), "ASIA", metadata$Continent))
 
+# had one singular isolate from central america, grouped the isolate with latin america instead
+metadata$Continent <- ifelse(metadata$Continent %in% "CENTRAL AMERICA", "LATIN AMERICA", metadata$Continent)
+
 # filter out pre-1990 sequences
 ### majority of pre-1990 sequences were from Norway
 metadata <- metadata |>
@@ -44,18 +47,18 @@ metadata$Country_mapping <- ifelse(metadata$Country %in% "Russian Federation", "
                                   ifelse(metadata$Country %in% "United States", "United States of America",
                                          ifelse(metadata$Country %in% "The Gambia", "Gambia", metadata$Country))))
 
+# set NA in GPSC to unknonwn
 metadata$GPSC <- ifelse(is.na(metadata$GPSC), "unknown", metadata$GPSC)
 
+# remove year after vaccine period
 metadata$Vaccine_period_clean <- gsub("\\-.*", "", metadata$Vaccine_period)
 
+# arrange PCV
 metadata$Vaccine_period_clean <- factor(metadata$Vaccine_period_clean, 
                                             levels = c("PREPCV", "POSTPCV7", "POSTPCV10", "POSTPCV13"))
 
-library(usethis)
-create_github_token()
-gitcreds::gitcreds_set()
+
 #----------------------------------------- maps -----------------------------------------
-################# need to set consistent scale
 
 
 # initialise map and removing antarctica
@@ -96,79 +99,12 @@ world_plot <- ggplot(data = world_annotated) +
     panel.grid = element_blank(),
     axis.title = element_blank(),
     axis.text = element_blank()
-  )
+  ) 
 
 world_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summary plots", "world plot.svg", fsep = "/")
 
 ggsave(world_plot, filename = world_plot_path, dpi = 320, width =60.58, height = 28.91, units = "cm")
 
-# zoomed in maps for europe
-europe <- world_annotated |>
-  filter(continent %in% "Europe" & !sovereignt %in% "Russia")
-
-eu_world_plot <- ggplot(data = europe) +
-  geom_sf(fill = "white") +
-  new_scale_fill() +
-  geom_sf(aes(fill = log10(n))) +
-  scale_fill_gradientn(colours = c("blue", "steelblue", "pink", "red"), na.value = "white", limits = c(0, 4.2)) +  
-  theme_minimal() +
-  xlim(-40, 42) +
-  ylim(35, 73) +
-  theme(
-    axis.ticks = element_blank(),
-    panel.background = element_blank(),
-    panel.grid = element_blank(),
-    axis.title = element_blank(),
-    axis.text = element_blank()
-  )
-
-eu_world_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summary plots", "eu world plot.svg", fsep = "/")
-
-ggsave(eu_world_plot, filename = eu_world_plot_path, dpi = 320, width =60.58, height = 28.91, units = "cm")
-
-# zoomed in map of sub-saharan africa
-west_africa <- world_annotated |>
-  filter(region_wb %in% "Sub-Saharan Africa")
-
-ssa_world_plot <- ggplot(data = west_africa) +
-  geom_sf(fill = "white") +
-  new_scale_fill() +
-  geom_sf(aes(fill = log10(n))) +
-  scale_fill_gradientn(colours = c("blue", "steelblue", "pink", "red"), na.value = "white", limits = c(0, 4.2)) +  
-  theme_minimal()+
-  theme(
-    axis.ticks = element_blank(),
-    panel.background = element_blank(),
-    panel.grid = element_blank(),
-    axis.title = element_blank(),
-    axis.text = element_blank()
-  )
-
-ssa_world_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summary plots", "ssa world plot.svg", fsep = "/")
-
-ggsave(ssa_world_plot, filename = ssa_world_plot_path, dpi = 320, width =60.58, height = 28.91, units = "cm")
-
-# zoomed in map of south and southeast asia
-south_asia <- world_annotated |>
-  filter(subregion %in% c("Southern Asia", "South-Eastern Asia"))
-
-sea_world_plot <- ggplot(data = south_asia) +
-  geom_sf(fill = "white") +
-  new_scale_fill() +
-  geom_sf(aes(fill = log10(n))) +
-  scale_fill_gradientn(colours = c("blue", "steelblue", "pink", "red"), na.value = "white", limits = c(0, 4.2)) +  
-  theme_minimal()+
-  theme(
-    axis.ticks = element_blank(),
-    panel.background = element_blank(),
-    panel.grid = element_blank(),
-    axis.title = element_blank(),
-    axis.text = element_blank()
-  )
-
-sea_world_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summary plots", "sea world plot.svg", fsep = "/")
-
-ggsave(sea_world_plot, filename = sea_world_plot_path, dpi = 320, width =60.58, height = 28.91, units = "cm")
 
 #----------------------------------------- vaccine reference table ----------------------------------------
 
@@ -207,7 +143,7 @@ vaccine_table |>
     panel.background = element_blank(),
     panel.grid = element_blank(),
     axis.title = element_blank(),
-    axis.text = element_text(size = 12)
+    axis.text = element_text(size = 24)
   )
 
 pcv7 <- vaccine_table |>
@@ -307,11 +243,6 @@ graph_dataset |>
     fill = "Serotype"
   )
 
-continent_year_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summary plots", "continent year plot.svg", fsep = "/")
-
-ggsave(continent_year_plot, filename = continent_year_plot_path, dpi = 320, width =60.58, height = 28.91, units = "cm")
-
-
 #----------------------------------------- year/manifest plot ----------------------------------------
 
 # isolates with >=15 or >5 will be labelled as NA 
@@ -360,7 +291,6 @@ continent_year_plot <- continent_year_tally |>
   scale_fill_manual(values = c("#BA55D3", "#2ECC71", "#00BFFF", "#FF8C00"),
                     labels = c("Carriage", "Diseased carriage", "IPD", "Non IPD")) +
   labs(
-    title = "Clinical manifestation of isolates collected in each region",
     x = "Year",
     y = "Number of isolates",
     fill = "Clinical \nManifestation"
@@ -369,11 +299,11 @@ continent_year_plot <- continent_year_tally |>
   geom_vline(xintercept = "2010", linetype = "dashed") +
   geom_vline(xintercept = "2020", linetype = "dashed") +
   theme(
-    legend.title = element_text(size = 16),
-    title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    axis.text = element_text(size = 12),
-    legend.key.size = unit(0.8, "cm")
+    title = element_text(size = 26),
+    legend.text = element_text(size = 20),
+    axis.text = element_text(size = 20),
+    legend.key.size = unit(0.8, "cm"),
+    strip.text.y = element_text(size = 18)
   )
 
 # join in colours 
@@ -384,7 +314,7 @@ metadata_age_manifest <- left_join(metadata_age_manifest, serotype_colours, by =
 
 continent_year_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summary plots", "continent year plot.svg", fsep = "/")
 
-ggsave(continent_year_plot, filename = continent_year_plot_path, dpi = 320, width =60.58, height = 28.91, units = "cm")
+ggsave(continent_year_plot, filename = continent_year_plot_path, dpi = 320, width =80.58, height = 36.91, units = "cm")
 
 #----------------------------------------- panels ----------------------------------------
 
@@ -394,6 +324,8 @@ ggsave(continent_year_plot, filename = continent_year_plot_path, dpi = 320, widt
 antibiotic <- c("WGS_PEN_SIR_Meningitis", "WGS_AMO_SIR", "WGS_TAX_SIR_Meningitis", "WGS_CFT_SIR_Meningitis",
                 "WGS_MER_SIR", "WGS_CFX_SIR", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR",
                 "WGS_CHL_SIR", "WGS_RIF_SIR")
+
+antibiotic_join <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR", "WGS_RIF_SIR")
 
 
 Continent <- c("AFRICA", "NORTH AMERICA", "LATIN AMERICA", "EUROPE", "ASIA", "OCEANIA")
@@ -406,13 +338,8 @@ setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/figures")
 
 metadata_age_manifest[33:70] <- lapply(metadata_age_manifest[33:70], gsub, pattern = "FLAG", replacement = "S", fixed = TRUE)
 
-metadata_age_manifest <- left_join(metadata_age_manifest, serotype_colours, by = "serotype_clean")
-
-
 serotype_colors_vector <- setNames(metadata_age_manifest$In_silico_serotype__colour, metadata_age_manifest$serotype_clean)
 
-metadata_age_manifest <- metadata_age_manifest |>
-  filter(Vaccine_period_clean %in% c("POSTPCV10", "POSTPCV13") & Manifest_category %in% "IPD")
 
 ### request from steph
 ### change for full report
@@ -465,7 +392,7 @@ for(i in antibiotic){
   
   ### calculate percentage
   age_tally_manifest <- join |>
-    summarise(
+    reframe(
       res_manifest = ifelse(!.data[[i]] == "R", "S", as.character(Manifest_category_tidy)),
       percentage = n.x/n.y,
       .groups = "keep"
@@ -508,7 +435,7 @@ for(i in antibiotic){
   if("I" %in% names(grouping)){
     
     
-    pivot_SIR <- metadata_age_manifest |>
+    pivot_SIR <- tidy_dataset |>
       filter(!is.na(Continent)) |>
       filter(!!((sym(i))) %in% c("S", "I", "R")) |>
       group_by(Continent, !!((sym(i)))) |>
@@ -541,7 +468,7 @@ for(i in antibiotic){
   {
     
     
-    pivot_SIR <- metadata_age_manifest |>
+    pivot_SIR <- tidy_dataset |>
       filter(!is.na(Continent)) |>
       filter(!!((sym(i))) %in% c("S", "R")) |>
       group_by(Continent, !!((sym(i)))) |>
@@ -627,10 +554,10 @@ for(i in antibiotic){
     theme(
       plot.margin = margin(10, 0, 0, 0)
     )
-  metadata_age_manifest[[i]] <- factor(metadata_age_manifest[[i]], levels = c("S", "I", "R"))
+  tidy_dataset[[i]] <- factor(tidy_dataset[[i]], levels = c("S", "I", "R"))
   ### year plot
   if(!"I" %in% names(pivot_plot)){
-    year <- metadata_age_manifest |>
+    year <- tidy_dataset |>
       filter(!!((sym(i))) %in% c("S", "I", "R")) |>
       filter(!Year %in% "_" & !is.na(Year)) |>
       ggplot(aes(x = as.factor(Year), fill = !!((sym(i))))) +
@@ -647,13 +574,10 @@ for(i in antibiotic){
         y = "Number of isolates",
         x = "Year",
         fill = "Resistance"
-      ) +
-      geom_vline(xintercept = "2000", linetype = "dashed") +
-      geom_vline(xintercept = "2010", linetype = "dashed") +
-      geom_vline(xintercept = "2020", linetype = "dashed") 
+      )
     
   } else
-    year <- metadata_age_manifest |>
+    year <- tidy_dataset |>
     filter(!!((sym(i))) %in% c("S", "I", "R")) |>
     filter(!Year %in% "_" & !is.na(Year)) |>
     ggplot(aes(x = as.factor(Year), fill = !!((sym(i))))) +
@@ -669,16 +593,13 @@ for(i in antibiotic){
       y = "Number of isolates",
       x = "Year",
       fill = "Resistance"
-    ) +
-    geom_vline(xintercept = "2000", linetype = "dashed") +
-    geom_vline(xintercept = "2010", linetype = "dashed") +
-    geom_vline(xintercept = "2020", linetype = "dashed") 
+    ) 
   
   ### serotype GPSC plot
   
-  metadata_age_manifest$GPSC <- sub(".*?;", "", metadata_age_manifest$GPSC)
+  tidy_dataset$GPSC <- sub(".*?;", "", tidy_dataset$GPSC)
   
-  n50 <- metadata_age_manifest |>
+  n50 <- tidy_dataset |>
     filter(!!((sym(i))) %in% "R" & !is.na(GPSC)) |>
     group_by(GPSC) |>
     tally() 
@@ -688,62 +609,94 @@ for(i in antibiotic){
   
   GPSC_list <- unique(tally_50$GPSC) 
   
-  tidy_modified <- metadata_age_manifest |>
+  tidy_modified <- tidy_dataset |>
     mutate(
-      gpsc_tidy = ifelse(GPSC %in% GPSC_list, metadata_age_manifest$GPSC, "others")
-    )
+      gpsc_tidy = ifelse(GPSC %in% GPSC_list, tidy_dataset$GPSC, "others")
+    ) |>
+    filter(!gpsc_tidy %in% "others")
   
   serotype_colours_vector <- setNames(tidy_modified$serotype_colour, tidy_modified$serotype_clean)
+
+  if (!i %in% antibiotic_join) {
+    GPSC_serotype_1 <- tidy_modified |>
+      filter(!!((sym(i))) %in% "R" & gpsc_tidy %in% "1") |>
+      ggplot(aes(x = as.factor(gpsc_tidy), fill = serotype_clean)) +
+      geom_bar() +
+      scale_fill_manual(name = "Serotype",
+                        values = serotype_colours_vector) +
+      labs(
+        x = "GPSC",
+        y = "Number of isolates"
+      ) +
+      theme(
+        legend.title = element_text(size = 8),
+        legend.text = element_text(size = 6),
+        legend.key.size = unit(0.2, "cm"),
+        axis.text = element_text(size = 7),
+        axis.title = element_text(size = 7),
+        axis.text.x = element_text(size = 5),
+        plot.margin = margin(15, 0, 0, 0)
+      )
+    
+    GPSC_serotype_others <- tidy_modified |>
+      filter(!!((sym(i))) %in% "R" & !gpsc_tidy %in% "1") |>
+      ggplot(aes(x = as.factor(gpsc_tidy), fill = serotype_clean)) +
+      geom_bar() +
+      scale_fill_manual(name = "Serotype",
+                        values = serotype_colours_vector) +
+      labs(
+        x = "GPSC",
+        y = "Number of isolates"
+      ) +
+      theme(
+        legend.title = element_text(size = 8),
+        legend.text = element_text(size = 6),
+        legend.key.size = unit(0.2, "cm"),
+        axis.text = element_text(size = 7),
+        axis.title = element_text(size = 7),
+        axis.text.x = element_text(size = 5),
+        plot.margin = margin(15, 0, 0, 0)
+      )
+    
+    GPSC_serotype_plot <- ggarrange(GPSC_serotype_1, GPSC_serotype_others, widths = c(1, 5)) 
+    
+    GPSC_serotype_year <- ggarrange(year, GPSC_serotype_plot, ncol = 1, labels = c("(c)", "(d)"), font.label=list(color="black",size=8), hjust = c(0,0,0))
+    
+    full_plot <- ggarrange(map_manifest, GPSC_serotype_year, ncol = 1, heights = c(1.5, 2)) +
+      theme(
+        plot.margin = margin(0.5,0.1,0.5,0.1, "cm")
+      )
+    
+    
+  } else  {
+    GPSC_serotype_plot <- tidy_modified |>
+      filter(!!((sym(i))) %in% "R") |>
+      ggplot(aes(x = as.factor(gpsc_tidy), fill = serotype_clean)) +
+      geom_bar() +
+      scale_fill_manual(name = "Serotype",
+                        values = serotype_colours_vector) +
+      labs(
+        x = "GPSC",
+        y = "Number of isolates"
+      ) +
+      theme(
+        legend.title = element_text(size = 8),
+        legend.text = element_text(size = 6),
+        legend.key.size = unit(0.2, "cm"),
+        axis.text = element_text(size = 7),
+        axis.title = element_text(size = 7),
+        axis.text.x = element_text(size = 5),
+        plot.margin = margin(15, 0, 0, 0)
+      )
+    
+    GPSC_serotype_year <- ggarrange(year, GPSC_serotype_plot, ncol = 1, labels = c("(c)", "(d)"), font.label=list(color="black",size=8), hjust = c(0,0,0))
+    
+    full_plot <- ggarrange(map_manifest, GPSC_serotype_year, ncol = 1, heights = c(1.5, 2)) +
+      theme(
+        plot.margin = margin(0.5,0.1,0.5,0.1, "cm")
+      )
+  }
   
-  GPSC_serotype_1 <- tidy_modified |>
-    filter(!!((sym(i))) %in% "R" & gpsc_tidy %in% "1") |>
-    ggplot(aes(x = as.factor(gpsc_tidy), fill = serotype_clean)) +
-    geom_bar() +
-    scale_fill_manual(name = "Serotype",
-                      values = serotype_colours_vector) +
-    labs(
-      x = "GPSC",
-      y = "Number of isolates"
-    ) +
-    theme(
-      legend.title = element_text(size = 8),
-      legend.text = element_text(size = 6),
-      legend.key.size = unit(0.2, "cm"),
-      axis.text = element_text(size = 7),
-      axis.title = element_text(size = 7),
-      axis.text.x = element_text(size = 5),
-      plot.margin = margin(15, 0, 0, 0)
-    )
-  
-  GPSC_serotype_others <- tidy_modified |>
-    filter(!!((sym(i))) %in% "R" & !gpsc_tidy %in% "1") |>
-    ggplot(aes(x = as.factor(gpsc_tidy), fill = serotype_clean)) +
-    geom_bar() +
-    scale_fill_manual(name = "Serotype",
-                      values = serotype_colours_vector) +
-    labs(
-      x = "GPSC",
-      y = "Number of isolates"
-    ) +
-    theme(
-      legend.title = element_text(size = 8),
-      legend.text = element_text(size = 6),
-      legend.key.size = unit(0.2, "cm"),
-      axis.text = element_text(size = 7),
-      axis.title = element_text(size = 7),
-      axis.text.x = element_text(size = 5),
-      plot.margin = margin(15, 0, 0, 0)
-    )
-  
-  
-  GPSC_serotype_plot <- ggarrange(GPSC_serotype_1, GPSC_serotype_others, widths = c(1, 5)) 
-  
-  GPSC_serotype_year <- ggarrange(year, GPSC_serotype_plot, ncol = 1, labels = c("(c)", "(d)"), font.label=list(color="black",size=8), hjust = c(0,0,0))
-  
-  full_plot <- ggarrange(map_manifest, GPSC_serotype_year, ncol = 1, heights = c(1.5, 2)) +
-    theme(
-      plot.margin = margin(0.5,0.1,0.5,0.1, "cm")
-    )
   
   
   full_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/full plot.svg", sep = ""), fsep = "/")
@@ -759,7 +712,7 @@ for(i in antibiotic){
   
   napath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/na forest.svg", sep = ""), fsep = "/")
   
-  complete <- metadata_age_manifest |> filter(!!((sym(i))) %in% c("S", "I", "R"))
+  complete <- tidy_dataset |> filter(!!((sym(i))) %in% c("S", "I", "R"))
   
 
   
@@ -999,6 +952,426 @@ write_csv(complete_proportion_table, file = complete_proportion_path)
 
 
 
+
+
+
+
+
+#----------------------------------------- GPSC and serotypes driving resistance pre/post PCV10/13 ----------------
+
+# classify vaccine period into pre/post pcv10
+
+metadata_vaccine_period <- metadata_age_manifest |>
+  mutate(
+    vaccine_binom = ifelse(Vaccine_period_clean %in% c("PREPCV", "POSTPCV7"), "PREPCV10",
+                           ifelse(Vaccine_period_clean %in% c("POSTPCV10", "POSTPCV13"), "POSTPCV10", "NA"))
+  )
+
+metadata_vaccine_period$vaccine_binom <- factor(metadata_vaccine_period$vaccine_binom, levels = c("PREPCV10", "POSTPCV10"))
+
+serotype_colors_vector <- setNames(metadata_vaccine_period$serotype_colour, metadata_vaccine_period$serotype_clean)
+
+
+# obtain list of countries with 5 or more pre and post pcv10 isolates
+continent_country_period <- metadata_vaccine_period |>
+  group_by(Continent, Country, vaccine_binom) |>
+  tally() |>
+  filter(n > 10)
+
+# filter for countries with both pre/post PCV10/13 isolates
+continent_country_period_vaccine <- continent_country_period |>
+  group_by(Country) |>
+  filter(n() > 1) |>
+  pivot_wider(names_from = vaccine_binom, values_from = n)
+
+# obtain list of countries
+vaccine_country_list <- continent_country_period_vaccine$Country
+
+
+
+
+# test for EU
+
+# obtain list of gpsc in this continent with 10 or more isolates pre and post pcv10
+gpsc_period_vaccine <- metadata_vaccine_period |>
+  filter(Country %in% vaccine_country_list & Continent %in% "EUROPE") |>
+  group_by(GPSC, vaccine_binom) |>
+  tally() |>
+  pivot_wider(names_from = vaccine_binom, values_from = n) |>
+  filter(PREPCV10 > 10 & POSTPCV10 > 10 & !GPSC %in% "unknown")
+
+vaccine_gpsc_list <- gpsc_period_vaccine$GPSC
+
+
+eu_gpsc <- metadata_vaccine_period |>
+  filter(Continent %in% "EUROPE" & Country %in% vaccine_country_list & GPSC %in% vaccine_gpsc_list) |>
+  group_by(vaccine_binom, GPSC, serotype_clean) |>
+  tally()
+
+eu_gpsc |>
+  ggplot(aes(x = vaccine_binom, y = n, fill = serotype_clean, group = GPSC)) +
+  geom_col(position = position_fill(), colour = "black") +
+  facet_grid(cols = vars(GPSC), space="free_x", switch='x') +
+  scale_y_continuous(expand = c(0,0)) +
+  scale_colour_manual(values = "black") +
+  scale_fill_manual(name = "Serotype",
+                    values = serotype_colors_vector,
+                    guide = guide_legend(ncol = 3)) +
+  theme(title = element_text(size = 20),
+        axis.title=element_text(size=18,face="bold"),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x =element_text(size=10,color="black", angle = 90, hjust=1, vjust=0.2),
+        axis.text.y = element_text(size = 12),
+        strip.placement='outside',
+        strip.background.x=element_blank(),
+        strip.text=element_text(size=12,color="black",face="bold"),
+        panel.spacing.x=unit(1,"pt"),
+        panel.grid = element_blank(),
+        panel.border = element_blank(),
+        legend.title = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.key.size = unit(0.8, "cm"),
+        plot.margin = margin(15, 0, 0, 0)) +
+  labs(
+    y = "Number of isolates",
+    title = paste("Dynamics of GPSCs causing invasive disease in EU", sep = " "),
+    x = "GPSC"
+  )
+
+
+
+forloop_output_pre <- data.frame()
+forloop_output_post <- data.frame()
+forloop_output <- data.frame()
+reference <- data.frame()
+
+for (t in antibiotic) {
+  
+  # create SIR table for GPSCs pre-PCV10
+  antibiotic_tile_pre <- metadata_vaccine_period |>
+    filter(Continent %in% "EUROPE" & Country %in% vaccine_country_list & GPSC %in% vaccine_gpsc_list & vaccine_binom %in% "PREPCV10") |>
+    group_by(GPSC, !!sym((t))) |>
+    tally() |>
+    pivot_wider(names_from = !!sym((t)), values_from = n)
+  
+  # set NAs to 0
+  antibiotic_tile_pre[is.na(antibiotic_tile_pre)] <- 0
+  
+  # calculate total number of isolates
+  antibiotic_tile_pre$total <- rowSums(antibiotic_tile_pre[, !colnames(antibiotic_tile_pre) %in% "GPSC"], na.rm = TRUE)
+  
+  # calculate proportion of resistant isolates for each antibiotic pre-PCV10
+  row_for_dataframe_pre <- antibiotic_tile_pre |>
+    mutate(
+      antibiotic = t,
+      proportion = R/total
+    ) |>
+    select(GPSC, proportion, antibiotic)
+  
+  # set NAs to 0
+  row_for_dataframe_pre[is.na(row_for_dataframe_pre)] <- 0
+  
+  # pivot wider to allow rbind
+  dataframe_row_pre <- row_for_dataframe_pre |>
+    pivot_wider(names_from = GPSC, values_from = proportion)
+  
+  # rbind
+  forloop_output_pre <- rbind(row_for_dataframe_pre, forloop_output_pre)
+  
+  
+  
+  # create SIR table for GPSCs pre-PCV10
+  antibiotic_tile_post <- metadata_vaccine_period |>
+    filter(Continent %in% "EUROPE" & Country %in% vaccine_country_list & GPSC %in% vaccine_gpsc_list & vaccine_binom %in% "POSTPCV10") |>
+    group_by(GPSC, !!sym((t))) |>
+    tally() |>
+    pivot_wider(names_from = !!sym((t)), values_from = n)
+  
+  # set NAs to 0
+  antibiotic_tile_post[is.na(antibiotic_tile_post)] <- 0
+  
+  # calculate total number of isolates
+  antibiotic_tile_post$total <- rowSums(antibiotic_tile_post[, !colnames(antibiotic_tile_post) %in% "GPSC"], na.rm = TRUE)
+  
+  # calculate proportion of resistant isolates for each antibiotic pre-PCV10
+  row_for_dataframe_post <- antibiotic_tile_post |>
+    mutate(
+      antibiotic = t,
+      proportion = R/total
+    ) |>
+    select(GPSC, proportion, antibiotic)
+  
+  # set NAs to 0
+  row_for_dataframe_post[is.na(row_for_dataframe_post)] <- 0
+  
+  # pivot wider to allow rbind
+  dataframe_row_post <- row_for_dataframe_post |>
+    pivot_wider(names_from = GPSC, values_from = proportion)
+
+
+  
+  # joining pre and post to calculate change
+  
+  row_for_dataframe <- left_join(row_for_dataframe_pre, row_for_dataframe_post, by = "GPSC", suffix = c("_pre", "_post"))
+  
+  
+  # calculate change in percentage resistance in each GPSC for each antibiotic post-PCV10
+  row_percentage_change <- row_for_dataframe |>
+    mutate(
+      proportion_change = proportion_pre - proportion_post
+    ) |>
+    select(-c(antibiotic_post, proportion_pre, proportion_post)) |>
+    rename(
+      antibiotic = antibiotic_pre
+    )
+  
+  # rbind output
+  
+  forloop_output <- rbind(row_percentage_change, forloop_output)
+
+  # rbind reference
+  
+  reference <- rbind(row_for_dataframe, reference)
+  
+}
+
+
+# change names of antibiotic column and relevel
+forloop_output <- left_join(forloop_output, antibiotic_tidying, by = "antibiotic") 
+
+forloop_output$antibiotic_tidy <- factor(forloop_output$antibiotic_tidy, levels = c("Rifampin", "Chloramphenicol", "Tetracycline", 
+                                                                                    "Co-trimoxazole", "Clindamycin", "Erythromycin", 
+                                                                                    "Meropenem", "Cefotaxime (meningitis)", 
+                                                                                    "Ceftriaxone (meningitis)", "Cefuroxime", 
+                                                                                    "Amoxicillin", "Penicillin (meningitis)"))
+
+reference_clean <- reference |>
+  rename(
+    antibiotic = antibiotic_pre
+  ) |>
+  select(-antibiotic_post)
+
+reference_raw <- left_join(reference_clean, antibiotic_tidying, by = "antibiotic")
+
+reference_raw$antibiotic_tidy <- factor(reference_raw$antibiotic_tidy, levels = c("Penicillin (meningitis)", "Amoxicillin", "Cefuroxime",
+                                                                          "Ceftriaxone (meningitis)", "Cefotaxime (meningitis)", "Meropenem",
+                                                                          "Erythromycin", "Clindamycin", "Co-trimoxazole",
+                                                                          "Tetracycline", "Chloramphenicol", "Rifampin"))
+
+
+
+# write out raw and calculated reference file for each continent
+resistance_reference_raw <- reference_raw |>
+  mutate(
+    proportion_change = proportion_pre - proportion_post
+  ) |>
+  select(-antibiotic) |>
+  relocate(antibiotic_tidy, .before = GPSC)
+
+
+
+resistance_reference_change <- forloop_output |>
+  select(-antibiotic) |>
+  pivot_wider(names_from = GPSC, values_from = proportion_change)
+
+
+
+
+# tile plot
+forloop_output |>
+  ggplot(aes(x = GPSC, y = antibiotic_tidy, fill = proportion_change)) +
+  geom_tile(colour = "black") +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0, limits = c(-1,1)) +
+  coord_fixed() +
+  theme(
+    plot.margin = unit(c(-4,0,0,0), 'lines')
+  ) +
+  labs(
+    y = "Antibiotic",
+    fill = "Proportion \nchange",
+    x = "GPSC",
+    title = "Change in prevalence of resistance pre and post PCV10 in Europe"
+  ) +
+  theme(
+    title = element_text(size = 22),
+    axis.title.y = element_text(size = 22),
+    axis.text.y = element_text(size = 20),
+    axis.title.x = element_text(size = 22),
+    axis.text.x = element_text(size = 20),
+    axis.ticks = element_blank(),
+    legend.title = element_text(margin = margin(b = 20, unit = "pt"), size = 18),
+    legend.text = element_text(size = 16),
+    legend.key.size = unit(0.8, "cm")
+  )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#------------------------------------ notes beyond this -------------------------------------
+
+# zoomed in maps for europe
+europe <- world_annotated |>
+  filter(continent %in% "Europe" & !sovereignt %in% "Russia")
+
+eu_world_plot <- ggplot(data = europe) +
+  geom_sf(fill = "white") +
+  new_scale_fill() +
+  geom_sf(aes(fill = log10(n))) +
+  scale_fill_gradientn(colours = c("blue", "steelblue", "pink", "red"), na.value = "white", limits = c(0, 4.2)) +  
+  theme_minimal() +
+  xlim(-40, 42) +
+  ylim(35, 73) +
+  theme(
+    axis.ticks = element_blank(),
+    panel.background = element_blank(),
+    panel.grid = element_blank(),
+    axis.title = element_blank(),
+    axis.text = element_blank()
+  )
+
+eu_world_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summary plots", "eu world plot.svg", fsep = "/")
+
+ggsave(eu_world_plot, filename = eu_world_plot_path, dpi = 320, width =60.58, height = 28.91, units = "cm")
+
+# zoomed in map of sub-saharan africa
+west_africa <- world_annotated |>
+  filter(region_wb %in% "Sub-Saharan Africa")
+
+ssa_world_plot <- ggplot(data = west_africa) +
+  geom_sf(fill = "white") +
+  new_scale_fill() +
+  geom_sf(aes(fill = log10(n))) +
+  scale_fill_gradientn(colours = c("blue", "steelblue", "pink", "red"), na.value = "white", limits = c(0, 4.2)) +  
+  theme_minimal()+
+  theme(
+    axis.ticks = element_blank(),
+    panel.background = element_blank(),
+    panel.grid = element_blank(),
+    axis.title = element_blank(),
+    axis.text = element_blank()
+  )
+
+ssa_world_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summary plots", "ssa world plot.svg", fsep = "/")
+
+ggsave(ssa_world_plot, filename = ssa_world_plot_path, dpi = 320, width =60.58, height = 28.91, units = "cm")
+
+# zoomed in map of south and southeast asia
+south_asia <- world_annotated |>
+  filter(subregion %in% c("Southern Asia", "South-Eastern Asia"))
+
+sea_world_plot <- ggplot(data = south_asia) +
+  geom_sf(fill = "white") +
+  new_scale_fill() +
+  geom_sf(aes(fill = log10(n))) +
+  scale_fill_gradientn(colours = c("blue", "steelblue", "pink", "red"), na.value = "white", limits = c(0, 4.2)) +  
+  theme_minimal()+
+  theme(
+    axis.ticks = element_blank(),
+    panel.background = element_blank(),
+    panel.grid = element_blank(),
+    axis.title = element_blank(),
+    axis.text = element_blank()
+  )
+
+sea_world_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summary plots", "sea world plot.svg", fsep = "/")
+
+ggsave(sea_world_plot, filename = sea_world_plot_path, dpi = 320, width =60.58, height = 28.91, units = "cm")
+
+
+
+# with VT/NVT pattern
+for(i in continent){
+  
+  as_gpsc <- metadata_age_manifest |>
+    group_by(GPSC) |>
+    filter(Continent %in% i & Manifest_category %in% "IPD") |>
+    tally() |>
+    filter(n > 9) 
+  
+  as_gpsc_list <- as_gpsc$GPSC
+  
+  title_continent <- str_to_title(i)
+  
+  gpsc_serotype_tally <- metadata_age_manifest |>
+    filter(Continent %in% i) |>
+    mutate(
+      GPSC_tidy_pcv = ifelse(GPSC %in% as_gpsc_list & !GPSC %in% "unknown", GPSC, "other")
+    ) |>
+    group_by(Vaccine_period_clean, GPSC_tidy_pcv, serotype_clean) |>
+    tally() 
+  
+  # annotate vaccine types
+  gpsc_serotype_tally$vaccine <- ifelse(gpsc_serotype_tally$serotype_clean %in% c(pcv7_serotypes, pcv10_serotypes, pcv13_serotypes), "VT", "NVT")
+  
+  
+  continent_dynamics <- gpsc_serotype_tally |>
+    ggplot(aes(x = Vaccine_period_clean, y = n, fill = serotype_clean, group = GPSC_tidy_pcv, pattern = vaccine)) +
+    geom_col_pattern(
+      pattern_spacing = 0.01, 
+      pattern_fill = "black", 
+      pattern_size = 0.5, 
+      pattern_linetype = 0.5,
+      pattern_key_scale_factor = 0.5,
+      pattern_orientation = "vertical", show.legend = TRUE,
+      position = position_dodge(preserve = "single")) +
+    facet_grid(cols = vars(GPSC_tidy_pcv), space="free_x", switch='x') +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_colour_manual(values = "black") +
+    scale_fill_manual(name = "Serotype",
+                      values = serotype_colors_vector,
+                      guide = guide_legend(ncol = 2)) +
+    theme(axis.title=element_text(size=12,face="bold"),
+          axis.ticks.x = element_blank(),
+          axis.text.x =element_text(size=8,color="black", angle = 90, hjust=1, vjust=0.2),
+          strip.placement='outside',
+          strip.background.x=element_blank(),
+          strip.text=element_text(size=12,color="black",face="bold"),
+          panel.spacing.x=unit(1,"pt"),
+          panel.grid = element_blank(),
+          panel.border = element_blank(),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10),
+          legend.key.size = unit(0.6, "cm"),
+          plot.margin = margin(15, 0, 0, 0)) +
+    labs(
+      y = "Number of isolates",
+      title = paste("Dynamics of GPSCs causing invasive disease in", title_continent, sep = " "),
+      x = "GPSC"
+    )
+  
+  dynamics_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "dynamics plot", paste(i, "plot.svg", sep = " "), fsep = "/")
+  
+  ggsave(continent_dynamics, filename = dynamics_plot_path, dpi = 320, width = 40.58, height = 18.91, units = "cm")
+  
+}
+
+
+
+
+
+
 #--------------------------- gpsc, serotypes and resistance of 10% most recent IPD samples -----------------------------
 
 metadata_age_manifest |>
@@ -1144,30 +1517,34 @@ ggsave(recent_ipd_plot, filename = recent_ipd_plot_path, dpi = 320, width =60.58
 ##### think about other information that can be shown
 
 write_csv(metadata_age_manifest, file = "metadata.csv")
+
+
+
+
+
+
 #--------------------------- change in serotypes over time -----------------------------
 
 
 # geom tile
 # empty dataframe 
-
-
 antibiotic <- c("WGS_PEN_SIR_Meningitis", "WGS_AMO_SIR", "WGS_TAX_SIR_Meningitis", "WGS_CFT_SIR_Meningitis",
                 "WGS_MER_SIR", "WGS_CFX_SIR", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR",
                 "WGS_CHL_SIR", "WGS_RIF_SIR")
 
-continent <- c("NORTH AMERICA", "LATIN AMERICA", "ASIA", "OCEANIA")
+continent <- c("ASIA", "AFRICA", "LATIN AMERICA", "OCEANIA", "EUROPE", "NORTH AMERICA")
 
-serotype_colors_vector <- setNames(metadata_age_manifest$In_silico_serotype__colour.y, metadata_age_manifest$serotype_clean)
+serotype_colors_vector <- setNames(metadata_vaccine_period$In_silico_serotype__colour, metadata_vaccine_period$serotype_clean)
 
 
 for(i in continent){
-
+  
   
   forloop_output <- data.frame()
   csv_output = list()
   
   
-  as_gpsc <- metadata_age_manifest |>
+  as_gpsc <- metadata_vaccine_period |>
     group_by(GPSC) |>
     filter(Continent %in% i & Manifest_category %in% "IPD") |>
     tally() |>
@@ -1177,7 +1554,7 @@ for(i in continent){
   
   title_continent <- str_to_title(i)
   
-  gpsc_serotype_tally <- metadata_age_manifest |>
+  gpsc_serotype_tally <- metadata_vaccine_period |>
     filter(Continent %in% i) |>
     mutate(
       GPSC_tidy_pcv = ifelse(GPSC %in% as_gpsc_list & !GPSC %in% "unknown", GPSC, "other")
@@ -1235,7 +1612,7 @@ for(i in continent){
   
   for (t in antibiotic) {
     
-    antibiotic_tile <- metadata_age_manifest |>
+    antibiotic_tile <- metadata_vaccine_period |>
       mutate(
         GPSC_tidy_pcv = ifelse(GPSC %in% as_gpsc_list & !GPSC %in% "unknown", GPSC, "other")
       ) |>
@@ -1266,7 +1643,7 @@ for(i in continent){
     
     
   }
-
+  
   forloop_output <- left_join(forloop_output, antibiotic_tidying, by = "antibiotic") 
   
   forloop_output$antibiotic_tidy <- factor(forloop_output$antibiotic_tidy, levels = c("Rifampin", "Chloramphenicol", "Tetracycline",
@@ -1354,7 +1731,7 @@ gpsc_serotype_tally |>
 
 
 # Africa
-af_gpsc <- metadata_age_manifest |>
+af_gpsc <- metadata_vaccine_period |>
   group_by(GPSC) |>
   filter(Continent %in% "AFRICA" & Manifest_category %in% "IPD") |>
   tally() |>
@@ -1363,7 +1740,7 @@ af_gpsc <- metadata_age_manifest |>
 
 af_gpsc_list <- af_gpsc$GPSC
 
-af_gpsc_serotype_tally <- metadata_age_manifest |>
+af_gpsc_serotype_tally <- metadata_vaccine_period |>
   filter(Continent %in% "AFRICA") |>
   mutate(
     GPSC_tidy_pcv = ifelse(GPSC %in% af_gpsc_list & !GPSC %in% "unknown", GPSC, "other")
@@ -1417,7 +1794,7 @@ csv_output = list()
 
 for (t in antibiotic) {
   
-  antibiotic_tile <- metadata_age_manifest |>
+  antibiotic_tile <- metadata_vaccine_period |>
     filter(Continent %in% "AFRICA") |>
     mutate(
       GPSC_tidy_pcv = ifelse(GPSC %in% as_gpsc_list & !GPSC %in% "unknown", GPSC, "other")
@@ -1497,6 +1874,8 @@ tile <- forloop_output |>
 tile_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "dynamics plot", "Africa tile plot.svg", fsep = "/")
 
 ggsave(tile, filename = tile_plot_path, dpi = 320, width = 65.58, height = 25.5, units = "cm")
+
+
 
 
 
@@ -1690,13 +2069,13 @@ tile_head <- forloop_output_head |>
     x = "GPSC"
   ) +
   theme(axis.title.y = element_text(size=12,face="bold"),
-    axis.text.y = element_text(size = 12),
-    axis.title.x = element_blank(),
-    axis.text.x = element_blank(),
-    axis.ticks = element_blank(),
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14),
-    legend.key.size = unit(0.8, "cm")
+        axis.text.y = element_text(size = 12),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks = element_blank(),
+        legend.title = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.key.size = unit(0.8, "cm")
   )
 
 # split into gpsc 3 and others
@@ -1744,73 +2123,3 @@ metadata_age_manifest |>
   view()
 
 ### rotate bar chart horizontally, facet by gpsc like in pcv period plot
-
-#------------------------------------ notes beyond this -------------------------------------
-
-
-# with VT/NVT pattern
-for(i in continent){
-  
-  as_gpsc <- metadata_age_manifest |>
-    group_by(GPSC) |>
-    filter(Continent %in% i & Manifest_category %in% "IPD") |>
-    tally() |>
-    filter(n > 9) 
-  
-  as_gpsc_list <- as_gpsc$GPSC
-  
-  title_continent <- str_to_title(i)
-  
-  gpsc_serotype_tally <- metadata_age_manifest |>
-    filter(Continent %in% i) |>
-    mutate(
-      GPSC_tidy_pcv = ifelse(GPSC %in% as_gpsc_list & !GPSC %in% "unknown", GPSC, "other")
-    ) |>
-    group_by(Vaccine_period_clean, GPSC_tidy_pcv, serotype_clean) |>
-    tally() 
-  
-  # annotate vaccine types
-  gpsc_serotype_tally$vaccine <- ifelse(gpsc_serotype_tally$serotype_clean %in% c(pcv7_serotypes, pcv10_serotypes, pcv13_serotypes), "VT", "NVT")
-  
-  
-  continent_dynamics <- gpsc_serotype_tally |>
-    ggplot(aes(x = Vaccine_period_clean, y = n, fill = serotype_clean, group = GPSC_tidy_pcv, pattern = vaccine)) +
-    geom_col_pattern(
-      pattern_spacing = 0.01, 
-      pattern_fill = "black", 
-      pattern_size = 0.5, 
-      pattern_linetype = 0.5,
-      pattern_key_scale_factor = 0.5,
-      pattern_orientation = "vertical", show.legend = TRUE,
-      position = position_dodge(preserve = "single")) +
-    facet_grid(cols = vars(GPSC_tidy_pcv), space="free_x", switch='x') +
-    scale_y_continuous(expand = c(0,0)) +
-    scale_colour_manual(values = "black") +
-    scale_fill_manual(name = "Serotype",
-                      values = serotype_colors_vector,
-                      guide = guide_legend(ncol = 2)) +
-    theme(axis.title=element_text(size=12,face="bold"),
-          axis.ticks.x = element_blank(),
-          axis.text.x =element_text(size=8,color="black", angle = 90, hjust=1, vjust=0.2),
-          strip.placement='outside',
-          strip.background.x=element_blank(),
-          strip.text=element_text(size=12,color="black",face="bold"),
-          panel.spacing.x=unit(1,"pt"),
-          panel.grid = element_blank(),
-          panel.border = element_blank(),
-          legend.title = element_text(size = 12),
-          legend.text = element_text(size = 10),
-          legend.key.size = unit(0.6, "cm"),
-          plot.margin = margin(15, 0, 0, 0)) +
-    labs(
-      y = "Number of isolates",
-      title = paste("Dynamics of GPSCs causing invasive disease in", title_continent, sep = " "),
-      x = "GPSC"
-    )
-  
-  dynamics_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "dynamics plot", paste(i, "plot.svg", sep = " "), fsep = "/")
-  
-  ggsave(continent_dynamics, filename = dynamics_plot_path, dpi = 320, width = 40.58, height = 18.91, units = "cm")
-  
-}
-
