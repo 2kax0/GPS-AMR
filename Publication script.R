@@ -25,6 +25,14 @@ metadata <- read.csv(file = "monocle-metadata - Copy.csv", na.strings = c("","NA
 
 # tidy antibiotics for plotting
 antibiotic_tidying <- read.csv(file = "antibiotic.csv")
+
+# read in file containing tidied serotypes
+clean_serotype <- read_csv(file = "tidied_serotypes.csv")
+
+# read in serotype colours
+serotype_colours <- read_csv(file = "serotype_colours.csv")
+
+
 #----------------------------------------- metadata cleanup -----------------------------------------
 
 # fill in missing continent data
@@ -56,6 +64,25 @@ metadata$Vaccine_period_clean <- gsub("\\-.*", "", metadata$Vaccine_period)
 # arrange PCV
 metadata$Vaccine_period_clean <- factor(metadata$Vaccine_period_clean, 
                                             levels = c("PREPCV", "POSTPCV7", "POSTPCV10", "POSTPCV13"))
+
+metadata[31:68] <- lapply(metadata[31:68], gsub, pattern = "FLAG", replacement = "S", fixed = TRUE)
+
+
+# left join to match serotype with tidied serotype
+metadata <- left_join(metadata, clean_serotype, by = "In_silico_serotype") |>
+  relocate(serotype_clean, .after = In_silico_serotype)
+
+# join in colours 
+metadata <- left_join(metadata, serotype_colours, by = "serotype_clean") |>
+  rename(
+    serotype_colour = In_silico_serotype__colour.y 
+  )
+
+# replace NAs in clean serotype column with in silico serotype
+metadata$serotype_clean <- ifelse(is.na(metadata$serotype_clean), metadata$In_silico_serotype, metadata$serotype_clean)
+
+
+serotype_colors_vector <- setNames(metadata$In_silico_serotype__colour, metadata$serotype_clean)
 
 
 #----------------------------------------- maps -----------------------------------------
@@ -190,24 +217,12 @@ tidy <- metadata |>
   relocate(GPSC_tidy, .after = GPSC)
 
 
-# read in file containing tidied serotypes
-clean_serotype <- read_csv(file = "tidied_serotypes.csv")
-
-# left join to match serotype with tidied serotype
-tidy <- left_join(tidy, clean_serotype, by = "In_silico_serotype") |>
-  relocate(serotype_clean, .after = In_silico_serotype)
-
-# replace NAs in clean serotype column with in silico serotype
-tidy$serotype_clean <- ifelse(is.na(tidy$serotype_clean), tidy$In_silico_serotype, tidy$serotype_clean)
-
 
 # tally table of serotypes in the 40 most abundant gpsc 
 graph_dataset <- tidy |>
   group_by(GPSC_tidy, serotype_clean) |>
   tally()
 
-# read in serotype colours
-serotype_colours <- read_csv(file = "serotype_colours.csv")
 
 # join in colours
 graph_dataset <- left_join(graph_dataset, serotype_colours, by = "serotype_clean")
@@ -247,7 +262,7 @@ graph_dataset |>
 
 # isolates with >=15 or >5 will be labelled as NA 
 # re-classify and tidying up age and clinical manifestation
-metadata_age_manifest <- tidy |>
+metadata_age_manifest <- metadata |>
   mutate(
     Age_year_num = as.integer(Age_years),
     Age_category = case_when(
@@ -306,11 +321,7 @@ continent_year_plot <- continent_year_tally |>
     strip.text.y = element_text(size = 18)
   )
 
-# join in colours 
-metadata_age_manifest <- left_join(metadata_age_manifest, serotype_colours, by = "serotype_clean") |>
-  rename(
-    serotype_colour = In_silico_serotype__colour.y 
-  )
+
 
 continent_year_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summary plots", "continent year plot.svg", fsep = "/")
 
@@ -325,8 +336,9 @@ antibiotic <- c("WGS_PEN_SIR_Meningitis", "WGS_AMO_SIR", "WGS_TAX_SIR_Meningitis
                 "WGS_MER_SIR", "WGS_CFX_SIR", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR",
                 "WGS_CHL_SIR", "WGS_RIF_SIR")
 
-antibiotic_join <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR", "WGS_RIF_SIR")
+antibiotic_join <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR", "WGS_CHL_SIR", "WGS_RIF_SIR")
 
+antibiotic_diverse_serotype <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_TET_SIR", "WGS_CLI_SIR", "WGS_COT_SIR")
 
 Continent <- c("AFRICA", "NORTH AMERICA", "LATIN AMERICA", "EUROPE", "ASIA", "OCEANIA")
 
@@ -335,10 +347,6 @@ world <- subset(world, region != "Antarctica")
 
 setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/figures")
 
-
-metadata_age_manifest[33:70] <- lapply(metadata_age_manifest[33:70], gsub, pattern = "FLAG", replacement = "S", fixed = TRUE)
-
-serotype_colors_vector <- setNames(metadata_age_manifest$In_silico_serotype__colour, metadata_age_manifest$serotype_clean)
 
 
 ### request from steph
@@ -410,13 +418,13 @@ for(i in antibiotic){
     scale_fill_manual(values = c("#BA55D3", "#2ECC71", "#00BFFF", "#FF8C00", "gray")) +
     scale_y_continuous(labels = scales::percent) +
     theme(
-      legend.title = element_text(size = 8),
-      legend.text = element_text(size = 6),
-      legend.key.size = unit(0.2, "cm"),
+      legend.title = element_text(size = 11),
+      legend.text = element_text(size = 8),
+      legend.key.size = unit(0.6, "cm"),
       plot.margin = margin(0, 0, 0, 5),
-      axis.title = element_text(size = 7),
-      axis.text = element_text(size = 7),
-      axis.text.x = element_text(size = 5)
+      axis.title = element_text(size = 11),
+      axis.text = element_text(size = 10),
+      axis.text.x = element_text(size = 10)
     ) +
     labs(
       fill = "Clinical \nmanifestation",
@@ -512,15 +520,15 @@ for(i in antibiotic){
         fill = "Resistance"
       ) +
       theme(
-        legend.title = element_text(size = 8),
-        legend.text = element_text(size = 6),
-        legend.key.size = unit(0.4, "cm"),
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 10),
+        legend.key.size = unit(0.6, "cm"),
         legend.position.inside = c(.1,.35),
         axis.text = element_blank(),
         axis.title = element_blank(),
         axis.ticks = element_blank(),
         panel.grid.major = element_blank(),
-        plot.margin = margin(-20, 0, 0, 0)
+        plot.margin = margin(-20, 0, 0, 10)
       ) 
     
   } else
@@ -536,25 +544,26 @@ for(i in antibiotic){
       fill = "Resistance"
     ) +
     theme(
-      legend.title = element_text(size = 8),
-      legend.text = element_text(size = 6),
-      legend.key.size = unit(0.4, "cm"),
+      legend.title = element_text(size = 11),
+      legend.text = element_text(size = 10),
+      legend.key.size = unit(0.6, "cm"),
       legend.position.inside = c(.1,.35),
       axis.text = element_blank(),
       axis.title = element_blank(),
       axis.ticks = element_blank(),
       panel.grid.major = element_blank(),
-      plot.margin = margin(-20, 0, 0, 0)
+      plot.margin = margin(-20, 0, 0, 10)
     ) 
   
   SIR_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/SIR table.csv", sep = ""), fsep = "/")
   write_csv(pivot_plot, file = SIR_path)
   
-  map_manifest <- ggarrange(plot, age_manifest, widths = c(1.75, 1.25), heights = c(1, 1), labels = c("(a)", "(b)"), label.y = 1.01, font.label=list(color="black",size=8), hjust = c(0,0,0)) +
+  map_manifest <- ggarrange(plot, age_manifest, widths = c(1.5, 1.25), heights = c(1, 1), labels = c("(a)", "(b)"), label.y = 1.01, font.label=list(color="black",size=12), hjust = c(0.5,0,0)) +
     theme(
-      plot.margin = margin(10, 0, 0, 0)
+      plot.margin = margin(10, 0, 10, 0)
     )
   tidy_dataset[[i]] <- factor(tidy_dataset[[i]], levels = c("S", "I", "R"))
+ 
   ### year plot
   if(!"I" %in% names(pivot_plot)){
     year <- tidy_dataset |>
@@ -564,14 +573,14 @@ for(i in antibiotic){
       geom_bar() +
       scale_fill_manual(values = c("#0069EC", "#FF2722")) +
       theme(
-        axis.text = element_text(size = 7),
+        axis.text = element_text(size = 10),
         plot.title = element_text(size = 8),
         legend.position = "none",
-        axis.title = element_text(size = 7),
-        axis.text.x = element_text(size = 5)
+        axis.title = element_text(size = 11),
+        axis.text.x = element_text(size = 10, angle = 45, vjust = 1)
       ) +
       labs(
-        y = "Number of isolates",
+        y = "Number of\nisolates",
         x = "Year",
         fill = "Resistance"
       )
@@ -584,13 +593,13 @@ for(i in antibiotic){
     geom_bar() +
     scale_fill_manual(values = c("#0069EC", "#F797B1", "#FF2722")) +
     theme(
-      axis.text = element_text(size = 7),
+      axis.text = element_text(size = 10),
       legend.position = "none",
-      axis.title = element_text(size = 7),
-      axis.text.x = element_text(size = 5)
+      axis.title = element_text(size = 11),
+      axis.text.x = element_text(size = 10, angle = 45, vjust = 1)
     ) +
     labs(
-      y = "Number of isolates",
+      y = "Number of\nisolates",
       x = "Year",
       fill = "Resistance"
     ) 
@@ -605,96 +614,131 @@ for(i in antibiotic){
     tally() 
   
   tally_50 <- n50[order(n50$n, decreasing = TRUE),] |>
-    slice_head(n = 30)
+    slice_head(n = 25)
   
-  GPSC_list <- unique(tally_50$GPSC) 
+  GPSC_list <- sort(unique(as.numeric(tally_50$GPSC)))
   
   tidy_modified <- tidy_dataset |>
     mutate(
       gpsc_tidy = ifelse(GPSC %in% GPSC_list, tidy_dataset$GPSC, "others")
     ) |>
-    filter(!gpsc_tidy %in% "others")
+    filter(!gpsc_tidy %in% c("others", "unknown"))
   
   serotype_colours_vector <- setNames(tidy_modified$serotype_colour, tidy_modified$serotype_clean)
 
   if (!i %in% antibiotic_join) {
     GPSC_serotype_1 <- tidy_modified |>
       filter(!!((sym(i))) %in% "R" & gpsc_tidy %in% "1") |>
-      ggplot(aes(x = as.factor(gpsc_tidy), fill = serotype_clean)) +
+      ggplot(aes(x = factor(gpsc_tidy, levels = GPSC_list), fill = serotype_clean)) +
       geom_bar() +
       scale_fill_manual(name = "Serotype",
-                        values = serotype_colours_vector) +
+                        values = serotype_colours_vector,
+                        guide = guide_legend(ncol = 1)) +
       labs(
         x = "GPSC",
         y = "Number of isolates"
       ) +
       theme(
-        legend.title = element_text(size = 8),
-        legend.text = element_text(size = 6),
-        legend.key.size = unit(0.2, "cm"),
-        axis.text = element_text(size = 7),
-        axis.title = element_text(size = 7),
-        axis.text.x = element_text(size = 5),
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 8),
+        legend.key.size = unit(0.4, "cm"),
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 11),
+        axis.text.x = element_text(size = 10),
         plot.margin = margin(15, 0, 0, 0)
       )
     
     GPSC_serotype_others <- tidy_modified |>
       filter(!!((sym(i))) %in% "R" & !gpsc_tidy %in% "1") |>
-      ggplot(aes(x = as.factor(gpsc_tidy), fill = serotype_clean)) +
+      ggplot(aes(x = factor(gpsc_tidy, levels = GPSC_list), fill = serotype_clean)) +
       geom_bar() +
       scale_fill_manual(name = "Serotype",
-                        values = serotype_colours_vector) +
+                        values = serotype_colours_vector,
+                        guide = guide_legend(ncol = 3)) +
       labs(
         x = "GPSC",
         y = "Number of isolates"
       ) +
       theme(
-        legend.title = element_text(size = 8),
-        legend.text = element_text(size = 6),
-        legend.key.size = unit(0.2, "cm"),
-        axis.text = element_text(size = 7),
-        axis.title = element_text(size = 7),
-        axis.text.x = element_text(size = 5),
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 8),
+        legend.key.size = unit(0.4, "cm"),
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 11),
+        axis.text.x = element_text(size = 8),
         plot.margin = margin(15, 0, 0, 0)
       )
     
-    GPSC_serotype_plot <- ggarrange(GPSC_serotype_1, GPSC_serotype_others, widths = c(1, 5)) 
+    GPSC_serotype_plot <- ggarrange(GPSC_serotype_1, GPSC_serotype_others, widths = c(1.25, 5)) 
     
-    GPSC_serotype_year <- ggarrange(year, GPSC_serotype_plot, ncol = 1, labels = c("(c)", "(d)"), font.label=list(color="black",size=8), hjust = c(0,0,0))
+    GPSC_serotype_year <- ggarrange(year, GPSC_serotype_plot, ncol = 1, heights = c(1.5, 2), labels = c("(c)", "(d)"), font.label=list(color="black",size=12), hjust = c(0,0,0))
     
-    full_plot <- ggarrange(map_manifest, GPSC_serotype_year, ncol = 1, heights = c(1.5, 2)) +
+    full_plot <- ggarrange(map_manifest, GPSC_serotype_year, ncol = 1, heights = c(1, 2)) +
       theme(
-        plot.margin = margin(0.5,0.1,0.5,0.1, "cm")
+        plot.margin = margin(0.5,0.3,0.5,0.3, "cm")
       )
     
     
-  } else  {
+  } else if (i %in% antibiotic_diverse_serotype) {
     GPSC_serotype_plot <- tidy_modified |>
       filter(!!((sym(i))) %in% "R") |>
-      ggplot(aes(x = as.factor(gpsc_tidy), fill = serotype_clean)) +
+      ggplot(aes(x = factor(gpsc_tidy, levels = GPSC_list), fill = serotype_clean)) +
       geom_bar() +
       scale_fill_manual(name = "Serotype",
-                        values = serotype_colours_vector) +
+                        values = serotype_colours_vector,
+                        guide = guide_legend(ncol = 4)) +
       labs(
         x = "GPSC",
         y = "Number of isolates"
       ) +
       theme(
-        legend.title = element_text(size = 8),
-        legend.text = element_text(size = 6),
-        legend.key.size = unit(0.2, "cm"),
-        axis.text = element_text(size = 7),
-        axis.title = element_text(size = 7),
-        axis.text.x = element_text(size = 5),
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 8),
+        legend.key.size = unit(0.4, "cm"),
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 11),
+        axis.text.x = element_text(size = 8),
         plot.margin = margin(15, 0, 0, 0)
       )
     
-    GPSC_serotype_year <- ggarrange(year, GPSC_serotype_plot, ncol = 1, labels = c("(c)", "(d)"), font.label=list(color="black",size=8), hjust = c(0,0,0))
+    GPSC_serotype_year <- ggarrange(year, GPSC_serotype_plot, ncol = 1, heights = c(1.5, 2), labels = c("(c)", "(d)"), font.label=list(color="black",size=12), hjust = c(0,0,0))
     
-    full_plot <- ggarrange(map_manifest, GPSC_serotype_year, ncol = 1, heights = c(1.5, 2)) +
+    full_plot <- ggarrange(map_manifest, GPSC_serotype_year, ncol = 1, heights = c(1, 2)) +
       theme(
-        plot.margin = margin(0.5,0.1,0.5,0.1, "cm")
+        plot.margin = margin(0.5,0.3,0.5,0.3, "cm")
       )
+    
+    
+  } else {
+    
+    GPSC_serotype_plot <- tidy_modified |>
+      filter(!!((sym(i))) %in% "R") |>
+      ggplot(aes(x = factor(gpsc_tidy, levels = GPSC_list), fill = serotype_clean)) +
+      geom_bar() +
+      scale_fill_manual(name = "Serotype",
+                        values = serotype_colours_vector,
+                        guide = guide_legend(ncol = 3)) +
+      labs(
+        x = "GPSC",
+        y = "Number of isolates"
+      ) +
+      theme(
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 8),
+        legend.key.size = unit(0.4, "cm"),
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 11),
+        axis.text.x = element_text(size = 8),
+        plot.margin = margin(15, 0, 0, 0)
+      )
+    
+    GPSC_serotype_year <- ggarrange(year, GPSC_serotype_plot, ncol = 1, heights = c(1.5, 2), labels = c("(c)", "(d)"), font.label=list(color="black",size=12), hjust = c(0,0,0))
+    
+    full_plot <- ggarrange(map_manifest, GPSC_serotype_year, ncol = 1, heights = c(1, 2)) +
+      theme(
+        plot.margin = margin(0.5,0.3,0.5,0.3, "cm")
+      )
+    
   }
   
   
@@ -733,9 +777,9 @@ for(i in antibiotic){
   NorthAmerica[is.na(NorthAmerica)] <- 0
   nameta <- metaprop(R, total, data = NorthAmerica)
   
-  svg(file = napath, width = 12.5, height = 3)
+  svg(file = napath, width = 14.5, height = 3)
   forest(nameta, comb.fixed = nameta$comb.fixed, comb.random = nameta$comb.random, 
-         overall = TRUE, studlab = NorthAmerica$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2cm")
+         overall = TRUE, studlab = NorthAmerica$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
   dev.off()
   
   
@@ -758,9 +802,9 @@ for(i in antibiotic){
   LatinAmerica[is.na(LatinAmerica)] <- 0
   lameta <- metaprop(R, total, data = LatinAmerica)
   
-  svg(file = lapath, width = 12.5, height = 3)
+  svg(file = lapath, width = 14.5, height = 3)
   forest(lameta, comb.fixed = lameta$comb.fixed, comb.random = lameta$comb.random, 
-         overall = TRUE, studlab = LatinAmerica$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2cm")
+         overall = TRUE, studlab = LatinAmerica$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
   dev.off()
   
   #europe
@@ -782,9 +826,9 @@ for(i in antibiotic){
   Europe[is.na(Europe)] <- 0
   eumeta <- metaprop(R, total, data = Europe)
   
-  svg(file = eupath, width = 12.5, height = 6)
+  svg(file = eupath, width = 14.5, height = 6)
   forest(eumeta, comb.fixed = eumeta$comb.fixed, comb.random = eumeta$comb.random, 
-         overall = TRUE, studlab = Europe$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2cm")
+         overall = TRUE, studlab = Europe$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
   dev.off()
   
   #asia
@@ -806,9 +850,9 @@ for(i in antibiotic){
   Asia[is.na(Asia)] <- 0
   asmeta <- metaprop(R, total, data = Asia)
   
-  svg(file = aspath, width = 12.5, height = 6)
+  svg(file = aspath, width = 14.5, height = 6)
   forest(asmeta, comb.fixed = asmeta$comb.fixed, comb.random = asmeta$comb.random, 
-         overall = TRUE, studlab = Asia$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2cm")
+         overall = TRUE, studlab = Asia$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
   dev.off()
   
   #africa
@@ -830,9 +874,9 @@ for(i in antibiotic){
   Africa[is.na(Africa)] <- 0
   afmeta <- metaprop(R, total, data = Africa)
   
-  svg(file = afpath, width = 12.5, height = 6)
+  svg(file = afpath, width = 14.5, height = 6)
   forest(afmeta, comb.fixed = afmeta$comb.fixed, comb.random = afmeta$comb.random, 
-         overall = TRUE, studlab = Africa$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2cm")
+         overall = TRUE, studlab = Africa$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
   dev.off()
   
   #oceania
@@ -854,9 +898,9 @@ for(i in antibiotic){
   Oceania[is.na(Oceania)] <- 0
   ocemeta <- metaprop(R, total, data = Oceania)
   
-  svg(file = ocepath, width = 12.5, height = 2.5)
+  svg(file = ocepath, width = 14.5, height = 2.5)
   forest(ocemeta, comb.fixed = ocemeta$comb.fixed, comb.random = ocemeta$comb.random, 
-         overall = TRUE, studlab = Oceania$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2cm")
+         overall = TRUE, studlab = Oceania$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
   dev.off()
   
   
@@ -961,7 +1005,7 @@ write_csv(complete_proportion_table, file = complete_proportion_path)
 
 # classify vaccine period into pre/post pcv10
 
-metadata_vaccine_period <- metadata_age_manifest |>
+metadata_vaccine_period <- metadata |>
   mutate(
     vaccine_binom = ifelse(Vaccine_period_clean %in% c("PREPCV", "POSTPCV7"), "PREPCV10",
                            ifelse(Vaccine_period_clean %in% c("POSTPCV10", "POSTPCV13"), "POSTPCV10", "NA"))
@@ -1002,16 +1046,22 @@ gpsc_period_vaccine <- metadata_vaccine_period |>
 
 vaccine_gpsc_list <- gpsc_period_vaccine$GPSC
 
+vaccine_gpsc_list_num <- sort(as.numeric(vaccine_gpsc_list))
+
 
 eu_gpsc <- metadata_vaccine_period |>
   filter(Continent %in% "EUROPE" & Country %in% vaccine_country_list & GPSC %in% vaccine_gpsc_list) |>
   group_by(vaccine_binom, GPSC, serotype_clean) |>
   tally()
 
+
+eu_gpsc_vector <- unique(sort(as.numeric(eu_gpsc$GPSC)))
+
+
 eu_gpsc |>
   ggplot(aes(x = vaccine_binom, y = n, fill = serotype_clean, group = GPSC)) +
   geom_col(position = position_fill(), colour = "black") +
-  facet_grid(cols = vars(GPSC), space="free_x", switch='x') +
+  facet_grid(~factor(GPSC, levels = eu_gpsc_vector), space="free_x", switch='x') +
   scale_y_continuous(expand = c(0,0)) +
   scale_colour_manual(values = "black") +
   scale_fill_manual(name = "Serotype",
@@ -1067,7 +1117,8 @@ for (t in antibiotic) {
       antibiotic = t,
       proportion = R/total
     ) |>
-    select(GPSC, proportion, antibiotic)
+    select(GPSC, proportion, antibiotic) |>
+    arrange(factor(GPSC, levels = eu_gpsc_vector))
   
   # set NAs to 0
   row_for_dataframe_pre[is.na(row_for_dataframe_pre)] <- 0
@@ -1100,7 +1151,8 @@ for (t in antibiotic) {
       antibiotic = t,
       proportion = R/total
     ) |>
-    select(GPSC, proportion, antibiotic)
+    select(GPSC, proportion, antibiotic) |>
+    arrange(factor(GPSC, levels = eu_gpsc_vector))
   
   # set NAs to 0
   row_for_dataframe_post[is.na(row_for_dataframe_post)] <- 0
@@ -1180,7 +1232,7 @@ resistance_reference_change <- forloop_output |>
 
 # tile plot
 forloop_output |>
-  ggplot(aes(x = GPSC, y = antibiotic_tidy, fill = proportion_change)) +
+  ggplot(aes(x = factor(GPSC, levels = eu_gpsc_vector), y = antibiotic_tidy, fill = proportion_change)) +
   geom_tile(colour = "black") +
   scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0, limits = c(-1,1)) +
   coord_fixed() +
@@ -1211,6 +1263,7 @@ forloop_output |>
 
 
 
+#----------------------------------------- Proportion of serotypes covered by vaccines ----------------------------
 
 
 
