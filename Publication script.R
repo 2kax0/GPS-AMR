@@ -72,15 +72,15 @@ metadata[31:68] <- lapply(metadata[31:68], gsub, pattern = "FLAG", replacement =
 metadata <- left_join(metadata, clean_serotype, by = "In_silico_serotype") |>
   relocate(serotype_clean, .after = In_silico_serotype)
 
+# replace NAs in clean serotype column with in silico serotype
+metadata$serotype_clean <- ifelse(is.na(metadata$serotype_clean), metadata$In_silico_serotype, metadata$serotype_clean)
+
+
 # join in colours 
 metadata <- left_join(metadata, serotype_colours, by = "serotype_clean") |>
   rename(
     serotype_colour = In_silico_serotype__colour.y 
   )
-
-# replace NAs in clean serotype column with in silico serotype
-metadata$serotype_clean <- ifelse(is.na(metadata$serotype_clean), metadata$In_silico_serotype, metadata$serotype_clean)
-
 
 serotype_colors_vector <- setNames(metadata$In_silico_serotype__colour, metadata$serotype_clean)
 
@@ -119,13 +119,15 @@ world_plot <- ggplot(data = world_annotated) +
   new_scale_fill() +
   geom_sf(aes(fill = log10(n))) +
   scale_fill_gradientn(colours = c("blue", "steelblue", "pink", "red"), na.value = "white", limits = c(0, 4.2)) +
-  theme_minimal() +
   theme(
     axis.ticks = element_blank(),
     panel.background = element_blank(),
     panel.grid = element_blank(),
     axis.title = element_blank(),
-    axis.text = element_blank()
+    axis.text = element_blank(),
+    legend.title = element_text(size = 18),
+    legend.text = element_text(size = 16),
+    legend.key.size = unit(1, "cm"),
   ) 
 
 world_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summary plots", "world plot.svg", fsep = "/")
@@ -308,7 +310,8 @@ continent_year_plot <- continent_year_tally |>
   labs(
     x = "Year",
     y = "Number of isolates",
-    fill = "Clinical \nManifestation"
+    fill = "Clinical \nManifestation",
+    
   ) +
   geom_vline(xintercept = "2000", linetype = "dashed") +
   geom_vline(xintercept = "2010", linetype = "dashed") +
@@ -1069,9 +1072,8 @@ eu_gpsc |>
                     guide = guide_legend(ncol = 3)) +
   theme(title = element_text(size = 20),
         axis.title=element_text(size=18,face="bold"),
-        axis.title.x = element_blank(),
         axis.ticks.x = element_blank(),
-        axis.text.x =element_text(size=10,color="black", angle = 90, hjust=1, vjust=0.2),
+        axis.text.x =element_text(size=10,color="black", angle = 90, hjust=1, vjust=0.2, face = "bold"),
         axis.text.y = element_text(size = 12),
         strip.placement='outside',
         strip.background.x=element_blank(),
@@ -1085,7 +1087,7 @@ eu_gpsc |>
         plot.margin = margin(15, 0, 0, 0)) +
   labs(
     y = "Number of isolates",
-    title = paste("Dynamics of GPSCs causing invasive disease in EU", sep = " "),
+    title = paste("Serotype distribution of GPSCs Europe pre- and post-PCV10", sep = " "),
     x = "GPSC"
   )
 
@@ -1243,18 +1245,18 @@ forloop_output |>
     y = "Antibiotic",
     fill = "Proportion \nchange",
     x = "GPSC",
-    title = "Change in prevalence of resistance pre and post PCV10 in Europe"
+    title = "Change in prevalence of resistance pre- and post-PCV10 in Europe"
   ) +
   theme(
-    title = element_text(size = 22),
-    axis.title.y = element_text(size = 22),
-    axis.text.y = element_text(size = 20),
-    axis.title.x = element_text(size = 22),
-    axis.text.x = element_text(size = 20),
+    title = element_text(size = 32),
+    axis.title.y = element_text(size = 32),
+    axis.text.y = element_text(size = 28),
+    axis.title.x = element_text(size = 32),
+    axis.text.x = element_text(size = 28),
     axis.ticks = element_blank(),
-    legend.title = element_text(margin = margin(b = 20, unit = "pt"), size = 18),
-    legend.text = element_text(size = 16),
-    legend.key.size = unit(0.8, "cm")
+    legend.title = element_text(margin = margin(b = 20, unit = "pt"), size = 24),
+    legend.text = element_text(size = 24),
+    legend.key.size = unit(1.2, "cm")
   )
 
 
@@ -1266,11 +1268,244 @@ forloop_output |>
 #----------------------------------------- Proportion of serotypes covered by vaccines ----------------------------
 
 
+metadata_res_any <- metadata |>
+  mutate(
+    resistance_c = paste(WGS_PEN_SIR_Meningitis, WGS_AMO_SIR, WGS_TAX_SIR_Meningitis, WGS_CFT_SIR_Meningitis,
+                          WGS_MER_SIR, WGS_CFX_SIR, WGS_ERY_SIR, WGS_CLI_SIR, WGS_COT_SIR, WGS_TET_SIR,
+                          WGS_CHL_SIR, WGS_RIF_SIR, sep = "_")
+  ) |>
+  filter(str_detect(resistance_c, "R") & Vaccine_period_clean %in% c("POSTPCV10", "POSTPCV13")) 
+
+
+metadata_res_any |>
+  filter(WGS_PEN_SIR_Meningitis %in% "R") |>
+  group_by(Continent, serotype_clean) |>
+  tally() |>
+  view()
+
+
+# create empty data frame to store number of isolates of each serotype that are resistant to each antibiotic in each continent
+serotype_coverage_df <- data.frame()
+serotype_coverage_ref <- data.frame()
+
+for(i in antibiotic){
+  
+  # tally out post pcv-10/13 isolates of each serotype in each continent that are resistant to the antibiotic
+  row_for_serotype_coverage_df <- metadata |>
+    filter(!!((sym(i))) %in% "R" & Vaccine_period_clean %in% c("POSTPCV10", "POSTPCV13")) |>
+    group_by(Continent, serotype_clean) |>
+    tally() |>
+    mutate(
+      antibiotic = i
+    )
+  
+
+  # pivot wider to allow rbind
+  dataframe_row_serotype_coverage <- row_for_serotype_coverage_df |>
+    pivot_wider(names_from = antibiotic, values_from = n)
+  
+  # rbind reference
+  serotype_coverage_ref <- rbind(dataframe_row_serotype_coverage, serotype_coverage_ref)
+  
+  # set NAs to 0
+  serotype_coverage_ref[is.na(serotype_coverage_ref)] <- 0
+  
+  
+  # rbind table for plotting
+  serotype_coverage_df <- rbind(row_for_serotype_coverage_df, serotype_coverage_df)
+  
+  
+}
 
 
 
 
 
+# if else statement to class serotype into vaccine coverage
+# show colours only for vaccine types, grey for all NVTs
+
+
+vaccine_table_unique_serotypes <- vaccine_table |>
+  filter(!is.na(vaccine_unique)) |>
+  select(serotype, vaccine_unique) |>
+  rename(
+    serotype_clean = serotype
+  )
+
+serotype_coverage_vaccine <- left_join(serotype_coverage_df, vaccine_table_unique_serotypes, by = "serotype_clean") 
+
+
+serotype_coverage_vaccine_unique <- serotype_coverage_vaccine |>
+  mutate(
+    unique_serotype = ifelse(is.na(vaccine_unique), "NVT", serotype_clean)
+  )
+
+serotype_coverage_vaccine_unique_clean <- left_join(serotype_coverage_vaccine_unique, antibiotic_tidying, by = "antibiotic")
+
+serotype_coverage_vaccine_unique_clean$antibiotic_tidy <- factor(serotype_coverage_vaccine_unique_clean$antibiotic_tidy, 
+                                                                 levels = c("Penicillin", "Amoxicillin", "Cefuroxime",
+                                                                            "Ceftriaxone", "Cefotaxime", "Meropenem",
+                                                                            "Erythromycin", "Clindamycin", "Co-trimoxazole",
+                                                                            "Tetracycline", "Chloramphenicol", "Rifampin"))
+
+
+# set colours
+vaccine_colour <- serotype_colours |>
+  rename(
+    unique_serotype = serotype_clean
+  )
+
+serotype_coverage_vaccine_unique_clean_coloured <- left_join(serotype_coverage_vaccine_unique_clean, vaccine_colour, by = "unique_serotype")
+
+vaccine_colors_vector <- setNames(serotype_coverage_vaccine_unique_clean_coloured$In_silico_serotype__colour, 
+                                  serotype_coverage_vaccine_unique_clean_coloured$unique_serotype)
+
+
+
+
+
+# plot PCV7 serotypes to obtain legend
+pcv7 <- serotype_coverage_vaccine_unique_clean |>
+  filter(vaccine_unique %in% "PCV7") |>
+  ggplot(aes(x = antibiotic_tidy, y = n, fill = unique_serotype)) +
+  geom_bar(position = position_stack(), stat = "identity") +
+  scale_fill_manual(name = "PCV7 serotypes",
+                    values = vaccine_colors_vector,
+                    guide = guide_legend(ncol = 3)) +
+  theme(
+    legend.title = element_text(size = 22),
+    legend.text = element_text(size = 18),
+    legend.key.size = unit(0.8, "cm")
+  )
+
+pcv7_legend <- get_legend(pcv7)
+
+
+# plot PCV10 serotypes to obtain legend
+pcv10 <- serotype_coverage_vaccine_unique_clean |>
+  filter(vaccine_unique %in% "PCV10_GSK") |>
+  ggplot(aes(x = antibiotic_tidy, y = n, fill = unique_serotype)) +
+  geom_bar(position = position_stack(), stat = "identity") +
+  scale_fill_manual(name = "PCV10 (GSK) unique serotypes",
+                    values = vaccine_colors_vector,
+                    guide = guide_legend(ncol = 3)) +
+  theme(
+    legend.title = element_text(size = 22),
+    legend.text = element_text(size = 18),
+    legend.key.size = unit(0.8, "cm")
+  )
+
+pcv10_legend <- get_legend(pcv10)
+
+
+# plot PCV13 serotypes to obtain legend
+pcv13 <- serotype_coverage_vaccine_unique_clean |>
+  filter(vaccine_unique %in% "PCV13") |>
+  ggplot(aes(x = antibiotic_tidy, y = n, fill = unique_serotype)) +
+  geom_bar(position = position_stack(), stat = "identity") +
+  scale_fill_manual(name = "PCV13 unique serotypes",
+                    values = vaccine_colors_vector,
+                    guide = guide_legend(ncol = 3)) +
+  theme(
+    legend.title = element_text(size = 22),
+    legend.text = element_text(size = 18),
+    legend.key.size = unit(0.8, "cm")
+  )
+
+pcv13_legend <- get_legend(pcv13)
+
+
+# plot PCV15 serotypes to obtain legend
+pcv15 <- serotype_coverage_vaccine_unique_clean |>
+  filter(vaccine_unique %in% "PCV15") |>
+  ggplot(aes(x = antibiotic_tidy, y = n, fill = unique_serotype)) +
+  geom_bar(position = position_stack(), stat = "identity") +
+  scale_fill_manual(name = "PCV15 unique serotypes",
+                    values = vaccine_colors_vector,
+                    guide = guide_legend(ncol = 3)) +
+  theme(
+    legend.title = element_text(size = 22),
+    legend.text = element_text(size = 18),
+    legend.key.size = unit(0.8, "cm")
+  )
+
+pcv15_legend <- get_legend(pcv15)
+
+
+# plot PCV20 serotypes to obtain legend
+pcv20 <- serotype_coverage_vaccine_unique_clean |>
+  filter(vaccine_unique %in% "PCV20") |>
+  ggplot(aes(x = antibiotic_tidy, y = n, fill = unique_serotype)) +
+  geom_bar(position = position_stack(), stat = "identity") +
+  scale_fill_manual(name = "PCV20 unique serotypes",
+                    values = vaccine_colors_vector,
+                    guide = guide_legend(ncol = 3)) +
+  theme(
+    legend.title = element_text(size = 22),
+    legend.text = element_text(size = 18),
+    legend.key.size = unit(0.8, "cm")
+  )
+
+pcv20_legend <- get_legend(pcv20)
+
+
+# plot NVT serotypes to obtain legend
+NVT <- serotype_coverage_vaccine_unique_clean |>
+  filter(unique_serotype %in% "NVT") |>
+  ggplot(aes(x = antibiotic_tidy, y = n, fill = unique_serotype)) +
+  geom_bar(position = position_stack(), stat = "identity") +
+  scale_fill_manual(values = vaccine_colors_vector,
+                    name = "Non-vaccine serotypes") +
+  theme(
+    legend.title = element_text(size = 22),
+    legend.text = element_text(size = 18),
+    legend.key.size = unit(0.8, "cm")
+  )
+
+NVT_legend <- get_legend(NVT)
+
+legend <- ggarrange(pcv7_legend, pcv10_legend, pcv13_legend, pcv15_legend, pcv20_legend, NVT_legend,
+          ncol = 1, align = "v", vjust = 20)
+
+ggsave(legend, file = "sample figures/vaccine coverage legend.svg", , dpi = 320, width = 14, height = 25, units = "cm")
+
+
+
+
+
+
+
+
+coverage_figure <- serotype_coverage_vaccine_unique_clean |>
+  ggplot(aes(x = antibiotic_tidy, y = n, fill = unique_serotype, colour = unique_serotype)) +
+  geom_bar(position = position_stack(), stat = "identity") +
+  facet_wrap(~Continent, ncol = 3, scales = "free_y")+
+  scale_fill_manual(name = "Serotype",
+                    values = vaccine_colors_vector,
+                    guide = "none") +
+  scale_colour_manual(values = vaccine_colors_vector,
+                      guide = "none") +
+  labs(
+    x = "Antibiotic",
+    y = "Number of isolates",
+    title = "Serotypes driving AMR post-PCV10/13 implementation in each continent"
+  ) +
+  theme(
+    title = element_text(size = 24),
+    axis.text.x = element_text(size = 18, angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 18),
+    axis.title = element_text(size = 22), 
+    legend.title = element_text(size = 22),
+    legend.text = element_text(size = 14),
+    legend.key.size = unit(0.8, "cm"),
+    strip.text = element_text(size = 16)
+  )
+
+ggsave(coverage_figure, file = "sample figures/vaccine coverage figure.svg", , dpi = 320, width = 48, height = 36, units = "cm")
+
+
+# try out post pcv13 only
+# could arrange vaccine types by vaccine then draw rectangle to highlight?
 
 
 
