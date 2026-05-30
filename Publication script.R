@@ -17,9 +17,6 @@ setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/")
 
 #-------------------------------------------- read in files -------------------------------------------
 
-# read in colour schemes for serotypes
-colour <- read.csv(file = "serotype_colours.csv")
-
 # read in metadata
 metadata <- read.csv(file = "monocle-metadata - Copy.csv", na.strings = c("","NA"))
 
@@ -1480,19 +1477,66 @@ serotype_coverage_vaccine_unique_clean_coloured |>
     legend.background = element_blank()
   )
 
+### separate figure for PCV25
+
+
 
 
 ### potential coverage table
 
+coverage_table <- data.frame()
 
 
+cols <- c("PCV31", "PCV24_GSK", "PCV21_SK_SANOFI", "PCV20", "PCV15") |>
+  map_dfr( ~tibble(!!.x := logical() ) )
+
+for(i in Continent){
+coverage_raw <- serotype_coverage_vaccine_unique_clean |>
+  filter(Continent %in% i) |>
+  select(-Continent) |>
+  group_by(antibiotic_tidy, unique_serotype) |>
+  summarise(
+    n = sum(n)
+  ) |>
+  pivot_wider(names_from = unique_serotype, values_from = n) |>
+  mutate(
+    continent = i
+  )
+
+coverage_raw <- bind_rows(coverage_raw, cols)
 
 
+coverage_raw[is.na(coverage_raw)] <- 0
 
 
+coverage_clean <- coverage_raw |>
+  mutate(
+    total = rowSums(across(where(is.numeric))),
+    pcv13_percentage = paste(round(100 * PCV13/total, 2), "%"),
+    pcv13_clean = paste0(pcv13_percentage, " (", PCV13, ")"),
+    total_pcv15 = PCV13 + PCV15,
+    pcv15_percentage = paste(round(100 * total_pcv15/total, 2), "%"),
+    pcv15_clean = paste0(pcv15_percentage, " (", total_pcv15, ")"), 
+    total_pcv20 = total_pcv15 + PCV20,
+    pcv20_percentage = paste(round(100 * total_pcv20/total, 2), "%"),
+    pcv20_clean = paste0(pcv20_percentage, " (", total_pcv20, ")"),
+    total_pcv21 = total_pcv20 + PCV21_SK_SANOFI,
+    pcv21_percentage = paste(round(100 * total_pcv21/total, 2), "%"),
+    pcv21_clean = paste0(pcv21_percentage, " (", total_pcv21, ")"),
+    total_pcv24 = total_pcv21 + PCV24_GSK,
+    pcv24_percentage = paste(round(100 * total_pcv24/total, 2), "%"),
+    pcv24_clean = paste0(pcv24_percentage, " (", total_pcv24, ")"),
+    total_pcv31 = total_pcv24 + PCV31,
+    pcv31_percentage = paste(round(100 * total_pcv31/total, 2), "%"),
+    pcv31_clean = paste0(pcv31_percentage, " (", total_pcv31, ")"),
+  ) |>
+  select(continent, antibiotic_tidy, pcv13_clean, pcv15_clean, pcv20_clean, pcv21_clean, pcv24_clean, pcv31_clean, total)
+
+coverage_table <- rbind(coverage_clean, coverage_table)
+}
 
 
-
+colnames(coverage_table) <- c("Continent", "Antibiotic", "PCV13", "PCV15", "PCV20", "PCV21 (SK/Sanofi)", "PCV24 (GSK)", "PCV31", "Total")
 
 
 
