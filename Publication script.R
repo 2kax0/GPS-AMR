@@ -82,6 +82,12 @@ metadata <- left_join(metadata, serotype_colours, by = "serotype_clean") |>
 
 serotype_colors_vector <- setNames(metadata$In_silico_serotype__colour, metadata$serotype_clean)
 
+### kanamycin resistance
+metadata <- metadata |>
+  mutate(
+    WGS_KAN_SIR = ifelse(startsWith(Other, "APH(3')_III"), "R", "S")
+  ) |>
+  relocate(WGS_KAN_SIR, .after = WGS_VAN_SIR)
 
 
 #----------------------------------------- MDR -----------------------------------------
@@ -100,11 +106,6 @@ metadata$resistogram <- paste(metadata$resistance_beta_lactam, metadata$WGS_CHL_
 # column to count MDR status (if at least 3 or more R or I are found = MDR)
 metadata$MDR <- ifelse(str_count(metadata$resistogram, 'R|I') > 2, "R", "S")
 
-metadata |>
-  filter(MDR %in% "R") |>
-  group_by(Continent, GPSC) |>
-  tally() |>
-  view()
 
 
 #----------------------------------------- maps -----------------------------------------
@@ -265,30 +266,30 @@ serotype_colors_vector <- setNames(graph_dataset$In_silico_serotype__colour, gra
 graph_dataset$vaccine <- ifelse(graph_dataset$serotype_clean %in% c(pcv7_serotypes, pcv10_serotypes, pcv13_serotypes), "VT", "NVT")
 
 # barchart
-graph_dataset |>
-  filter(!GPSC_tidy %in% "NA") |>
-  ggplot() +
-  (aes(x = as.factor(GPSC_tidy), y = n, fill = serotype_clean, pattern = vaccine)) +
-  geom_col_pattern(
-    pattern_spacing = 0.01, 
-    pattern_fill = "black", 
-    pattern_size = 0.5, 
-    pattern_linetype = 0.5,
-    pattern_key_scale_factor = 0.5,
-    pattern_orientation = "vertical", show.legend = TRUE) +
-  scale_fill_manual(name = "Serotype",
-                    values = serotype_colors_vector,
-                    guide = guide_legend(override.aes = list(pattern = "none"), ncol = 3)) +
-  scale_pattern_manual(
-    name = "Vaccine",
-    values = c("NVT" = "stripe", "VT" = "none")
-  )  +
-  labs(
-    title = "Serotype and antibiotic resistance within the 40 most abundant GPSCs",
-    x = "GPSC",
-    y = "Number of isolates",
-    fill = "Serotype"
-  )
+#graph_dataset |>
+#  filter(!GPSC_tidy %in% "NA") |>
+#  ggplot() +
+#  (aes(x = as.factor(GPSC_tidy), y = n, fill = serotype_clean, pattern = vaccine)) +
+#  geom_col_pattern(
+#    pattern_spacing = 0.01, 
+#    pattern_fill = "black", 
+#    pattern_size = 0.5, 
+#    pattern_linetype = 0.5,
+#    pattern_key_scale_factor = 0.5,
+#    pattern_orientation = "vertical", show.legend = TRUE) +
+#  scale_fill_manual(name = "Serotype",
+#                    values = serotype_colors_vector,
+#                    guide = guide_legend(override.aes = list(pattern = "none"), ncol = 3)) +
+#  scale_pattern_manual(
+#    name = "Vaccine",
+#    values = c("NVT" = "stripe", "VT" = "none")
+#  )  +
+#  labs(
+#    title = "Serotype and antibiotic resistance within the 40 most abundant GPSCs",
+#    x = "GPSC",
+#    y = "Number of isolates",
+#    fill = "Serotype"
+#  )
 
 #----------------------------------------- year/manifest plot ----------------------------------------
 
@@ -323,7 +324,8 @@ continent_year_tally <- metadata_age_manifest |>
   group_by(Continent, Year, Manifest_category) |>
   tally() |>
   mutate(
-    join = paste0(Continent, " ", Manifest_category)
+    continent_tidy = str_to_title(Continent),
+    join = paste0(continent_tidy, " ", Manifest_category)
   )
 
 # relevel factors
@@ -334,7 +336,7 @@ continent_year_plot <- continent_year_tally |>
   filter(as.integer(Year) > 1989 & !Continent %in% "CENTRAL AMERICA") |>
   ggplot(aes(x = as.factor(Year), y = n, fill = Manifest_category)) +
   geom_bar(stat = "identity") +
-  facet_grid(Continent ~ ., scales = "free_y") +
+  facet_grid(continent_tidy ~ ., scales = "free_y") +
   scale_fill_manual(values = c("#BA55D3", "#2ECC71", "#00BFFF", "#FF8C00"),
                     labels = c("Carriage", "Diseased carriage", "IPD", "Non IPD")) +
   labs(
@@ -347,18 +349,20 @@ continent_year_plot <- continent_year_tally |>
   geom_vline(xintercept = "2010", linetype = "dashed") +
   geom_vline(xintercept = "2020", linetype = "dashed") +
   theme(
-    title = element_text(size = 26),
-    legend.text = element_text(size = 20),
-    axis.text = element_text(size = 20),
-    legend.key.size = unit(0.8, "cm"),
-    strip.text.y = element_text(size = 18)
+    title = element_text(size = 28),
+    legend.text = element_text(size = 26),
+    axis.text = element_text(size = 26),
+    legend.key.size = unit(1, "cm"),
+    strip.text.y = element_text(size = 24),
+    axis.text.x = element_text(size = 26, angle = 45, hjust = 1),
+    axis.title = element_text(size = 30)
   )
 
 
 
 continent_year_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summary plots", "continent year plot.svg", fsep = "/")
 
-ggsave(continent_year_plot, filename = continent_year_plot_path, dpi = 320, width =80.58, height = 36.91, units = "cm")
+ggsave(continent_year_plot, filename = continent_year_plot_path, dpi = 320, width =80.58, height = 43, units = "cm")
 
 #----------------------------------------- panels ----------------------------------------
 
@@ -367,9 +371,9 @@ ggsave(continent_year_plot, filename = continent_year_plot_path, dpi = 320, widt
 # join serotype/gpsc table for CLI, COT, ERY, PEN, RIF, TET
 antibiotic <- c("WGS_PEN_SIR_Meningitis", "WGS_AMO_SIR", "WGS_TAX_SIR_Meningitis", "WGS_CFT_SIR_Meningitis",
                 "WGS_MER_SIR", "WGS_CFX_SIR", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR",
-                "WGS_CHL_SIR", "WGS_RIF_SIR", "MDR")
+                "WGS_CHL_SIR", "WGS_RIF_SIR", "WGS_KAN_SIR", "MDR")
 
-antibiotic_join <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR", "WGS_CHL_SIR", "WGS_RIF_SIR", "MDR")
+antibiotic_join <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR", "WGS_CHL_SIR", "WGS_RIF_SIR", "WGS_KAN_SIR", "MDR")
 
 antibiotic_diverse_serotype <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_TET_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "MDR")
 
@@ -610,7 +614,7 @@ for(i in antibiotic){
         plot.title = element_text(size = 8),
         legend.position = "none",
         axis.title = element_text(size = 11),
-        axis.text.x = element_text(size = 10, angle = 45, vjust = 1)
+        axis.text.x = element_text(size = 10, angle = 45, hjust = 1)
       ) +
       labs(
         y = "Number of\nisolates",
@@ -629,7 +633,7 @@ for(i in antibiotic){
       axis.text = element_text(size = 10),
       legend.position = "none",
       axis.title = element_text(size = 11),
-      axis.text.x = element_text(size = 10, angle = 45, vjust = 1)
+      axis.text.x = element_text(size = 10, angle = 45, hjust = 1)
     ) +
     labs(
       y = "Number of\nisolates",
@@ -1010,7 +1014,7 @@ for(i in antibiotic){
 df_list <- list(WGS_AMO_SIR_proportion, WGS_PEN_SIR_Meningitis_proportion, WGS_CFX_SIR_proportion,
                                        WGS_TAX_SIR_Meningitis_proportion, WGS_CFT_SIR_Meningitis_proportion, WGS_MER_SIR_proportion,
                                        WGS_CHL_SIR_proportion, WGS_CLI_SIR_proportion, WGS_ERY_SIR_proportion,
-                                       WGS_TET_SIR_proportion, WGS_COT_SIR_proportion, WGS_RIF_SIR_proportion, MDR_proportion)
+                                       WGS_TET_SIR_proportion, WGS_COT_SIR_proportion, WGS_RIF_SIR_proportion, WGS_KAN_SIR_proportion, MDR_proportion)
 
 # join all tables together
 complete_proportion_table <- df_list |>
@@ -1018,7 +1022,7 @@ complete_proportion_table <- df_list |>
 
 colnames(complete_proportion_table) <- c("Continent", "Amoxicillin", "Penicillin", "Cefuroxime", "Cefotaxime", 
                                          "Ceftriaxone", "Meropenem", "Chloramphenicol", "Clindamycin", "Erythromycin", 
-                                         "Tetracycline", "Co-trimoxazole", "Rifampin", "MDR")
+                                         "Tetracycline", "Co-trimoxazole", "Rifampin", "Kanamycin", "MDR")
 
 # save proportion table for each antibiotic into their respective folder
 complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summarised data", "/complete proportion.csv", fsep = "/")
@@ -1059,7 +1063,7 @@ continent_country_period <- metadata_vaccine_period |>
 continent_country_period_vaccine <- continent_country_period |>
   group_by(Country) |>
   filter(n() > 1) |>
-  pivot_wider(names_from = vaccine_binom, values_from = n)
+  pivot_wider(names_from = vaccine_binom, values_from = n) 
 
 # obtain list of countries
 vaccine_country_list <- continent_country_period_vaccine$Country
@@ -1224,7 +1228,7 @@ for (t in antibiotic) {
 # change names of antibiotic column and relevel
 forloop_output <- left_join(forloop_output, antibiotic_tidying, by = "antibiotic") 
 
-forloop_output$antibiotic_tidy <- factor(forloop_output$antibiotic_tidy, levels = c("MDR", "Rifampin", "Chloramphenicol", "Tetracycline", 
+forloop_output$antibiotic_tidy <- factor(forloop_output$antibiotic_tidy, levels = c("MDR", "Kanamycin", "Rifampin", "Chloramphenicol", "Tetracycline", 
                                                                                     "Co-trimoxazole", "Clindamycin", "Erythromycin", 
                                                                                     "Meropenem", "Cefotaxime", 
                                                                                     "Ceftriaxone", "Cefuroxime", 
@@ -1241,7 +1245,7 @@ reference_raw <- left_join(reference_clean, antibiotic_tidying, by = "antibiotic
 reference_raw$antibiotic_tidy <- factor(reference_raw$antibiotic_tidy, levels = c("Penicillin", "Amoxicillin", "Cefuroxime",
                                                                           "Ceftriaxone", "Cefotaxime", "Meropenem",
                                                                           "Erythromycin", "Clindamycin", "Co-trimoxazole",
-                                                                          "Tetracycline", "Chloramphenicol", "Rifampin", "MDR"))
+                                                                          "Tetracycline", "Chloramphenicol", "Rifampin", "Kanamycin", "MDR"))
 
 
 
@@ -1295,7 +1299,7 @@ forloop_output |>
 
 
 
-#------------------------------ PCV13 serotype persistence post vaccine implementation ----------------------------
+#------------------------------ Potential vaccine coverage and PCV13 serotype persistence post vaccine implementation ----------------------------
 
 
 #metadata_res_any <- metadata |>
@@ -1385,7 +1389,7 @@ serotype_coverage_vaccine_unique_clean$antibiotic_tidy <- factor(serotype_covera
                                                                  levels = c("Penicillin", "Amoxicillin", "Cefuroxime",
                                                                             "Ceftriaxone", "Cefotaxime", "Meropenem",
                                                                             "Erythromycin", "Clindamycin", "Co-trimoxazole",
-                                                                            "Tetracycline", "Chloramphenicol", "Rifampin", "MDR"))
+                                                                            "Tetracycline", "Chloramphenicol", "Rifampin", "Kanamycin", "MDR"))
 
 
 # set colours
@@ -1537,6 +1541,24 @@ coverage_table <- rbind(coverage_clean, coverage_table)
 
 
 colnames(coverage_table) <- c("Continent", "Antibiotic", "PCV13", "PCV15", "PCV20", "PCV21 (SK/Sanofi)", "PCV24 (GSK)", "PCV31", "Total")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
