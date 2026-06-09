@@ -20,6 +20,9 @@ setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/")
 # read in metadata
 metadata <- read.csv(file = "monocle-metadata - Copy.csv", na.strings = c("","NA"))
 
+# read in unpublished cambodia metadata
+cambodia <- read.csv(file = "cambodia.csv", na.strings = c("","NA"))
+
 # tidy antibiotics for plotting
 antibiotic_tidying <- read.csv(file = "antibiotic.csv")
 
@@ -31,6 +34,9 @@ serotype_colours <- read_csv(file = "serotype_colours.csv")
 
 
 #----------------------------------------- metadata cleanup -----------------------------------------
+
+# join up metadata with unpublished cambodia data
+metadata <- rbind(metadata, cambodia)
 
 # fill in missing continent data
 metadata$Continent <- ifelse(metadata$Country %in% "NIGERIA" & is.na(metadata$Continent), "AFRICA",
@@ -90,6 +96,36 @@ metadata <- metadata |>
   relocate(WGS_KAN_SIR, .after = WGS_VAN_SIR)
 
 
+# classify vaccine period into pre/post pcv13
+
+metadata <- metadata |>
+  mutate(
+    vaccine_binom = ifelse(Vaccine_period_clean %in% c("PREPCV", "POSTPCV7", "POSTPCV10"), "PREPCV13",
+                           ifelse(Vaccine_period_clean %in% "POSTPCV13", "POSTPCV13", "NA"))
+  )
+
+# isolates with >=15 or >5 will be labelled as NA 
+# re-classify and tidying up age and clinical manifestation
+metadata <- metadata |>
+  mutate(
+    Age_year_num = as.integer(Age_years),
+    Age_category = case_when(
+      Age_years %in% c("<=5", "<1", ">=2 & <5", ">2<=5", "<=2", "<5", ">2<=5", "0-2") ~ "< 5",
+      Age_years %in% c(">15<=24", ">24<=44", ">44<=65", ">5<=15", "15-44", "23-64", "34-48", "45-64", "49-64", "5-14", "3-5", "6-12", "4-12") ~ ">=5 - <=65",
+      Age_years %in% c(">65", ">=65", "65-78", "79-98") ~ "> 65",
+      Age_years %in% "_" & Age_months %in% "_" & Age_days %in% "_" ~ "NA",
+      !is.na(Age_year_num) & Age_year_num < 5 ~ "< 5",
+      !is.na(Age_year_num) & Age_year_num >= 5 & Age_year_num <= 65 ~ ">=5 - <=65",
+      !is.na(Age_year_num) & Age_year_num > 65 ~ "> 65",
+      is.na(Age_year_num) & !is.na(Age_months) ~ "< 5",
+      is.na(Age_year_num) & is.na(Age_months) & !is.na(Age_days) ~ "< 5",
+      TRUE ~ NA
+    ),
+    Manifest_category = ifelse(Manifestation %in% "UNKNOWN" & Clinical_manifestation %in% c("ARTHRITIS", "SEPTIC ARTHRITIS", "MENINGITIS", "SEPSIS"), "IPD", Manifestation)
+  ) |>
+  relocate(Manifest_category, .after = Manifestation) 
+
+
 #----------------------------------------- MDR -----------------------------------------
 
 # add resistogram column for beta lactams
@@ -101,7 +137,7 @@ metadata$resistance_beta_lactam <- ifelse(str_detect(metadata$resistogram_beta_l
 
 # add resistogram column for beta lactams and other MDR antibiotics
 metadata$resistogram <- paste(metadata$resistance_beta_lactam, metadata$WGS_CHL_SIR, metadata$WGS_ERY_SIR, 
-                              metadata$WGS_COT_SIR, metadata$WGS_TET_SIR)
+                              metadata$WGS_COT_SIR, metadata$WGS_TET_SIR, metadata$WGS_KAN_SIR)
 
 # column to count MDR status (if at least 3 or more R or I are found = MDR)
 metadata$MDR <- ifelse(str_count(metadata$resistogram, 'R|I') > 2, "R", "S")
@@ -148,14 +184,14 @@ world_plot <- ggplot(data = world_annotated) +
     panel.grid = element_blank(),
     axis.title = element_blank(),
     axis.text = element_blank(),
-    legend.title = element_text(size = 18),
-    legend.text = element_text(size = 16),
-    legend.key.size = unit(1, "cm"),
+    legend.title = element_text(size = 28),
+    legend.text = element_text(size = 24),
+    legend.key.size = unit(1.2, "cm")
   ) 
 
 world_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summary plots", "world plot.svg", fsep = "/")
 
-ggsave(world_plot, filename = world_plot_path, dpi = 320, width =60.58, height = 28.91, units = "cm")
+ggsave(world_plot, filename = world_plot_path, dpi = 320, width =50.58, height = 18.91, units = "cm")
 
 
 #----------------------------------------- vaccine reference table ----------------------------------------
@@ -293,33 +329,10 @@ graph_dataset$vaccine <- ifelse(graph_dataset$serotype_clean %in% c(pcv7_serotyp
 
 #----------------------------------------- year/manifest plot ----------------------------------------
 
-# isolates with >=15 or >5 will be labelled as NA 
-# re-classify and tidying up age and clinical manifestation
-metadata_age_manifest <- metadata |>
-  mutate(
-    Age_year_num = as.integer(Age_years),
-    Age_category = case_when(
-      Age_years %in% c("<=5", "<1", ">=2 & <5", ">2<=5", "<=2", "<5", ">2<=5", "0-2") ~ "< 5",
-      Age_years %in% c(">15<=24", ">24<=44", ">44<=65", ">5<=15", "15-44", "23-64", "34-48", "45-64", "49-64", "5-14", "3-5", "6-12", "4-12") ~ ">=5 - <=65",
-      Age_years %in% c(">65", ">=65", "65-78", "79-98") ~ "> 65",
-      Age_years %in% "_" & Age_months %in% "_" & Age_days %in% "_" ~ "NA",
-      !is.na(Age_year_num) & Age_year_num < 5 ~ "< 5",
-      !is.na(Age_year_num) & Age_year_num >= 5 & Age_year_num <= 65 ~ ">=5 - <=65",
-      !is.na(Age_year_num) & Age_year_num > 65 ~ "> 65",
-      is.na(Age_year_num) & !is.na(Age_months) ~ "< 5",
-      is.na(Age_year_num) & is.na(Age_months) & !is.na(Age_days) ~ "< 5",
-      TRUE ~ NA
-    ),
-    Manifest_category = ifelse(Manifestation %in% "UNKNOWN" & Clinical_manifestation %in% c("ARTHRITIS", "SEPTIC ARTHRITIS", "MENINGITIS", "SEPSIS"), "IPD", Manifestation)
-  ) |>
-  relocate(Manifest_category, .after = Manifestation) 
-
-# annotate vaccine types
-metadata_age_manifest$vaccine <- ifelse(metadata_age_manifest$serotype_clean %in% c(pcv7_serotypes, pcv10_serotypes, pcv13_serotypes), "VT", "NVT")
 
 
 # table with continent manifestation for plotting
-continent_year_tally <- metadata_age_manifest |>
+continent_year_tally <- metadata |>
   filter(!is.na(Year) & !is.na(Continent) & !Year %in% "_" & !Manifest_category %in% "UNKNOWN") |>
   group_by(Continent, Year, Manifest_category) |>
   tally() |>
@@ -350,11 +363,12 @@ continent_year_plot <- continent_year_tally |>
   geom_vline(xintercept = "2020", linetype = "dashed") +
   theme(
     title = element_text(size = 28),
-    legend.text = element_text(size = 26),
+    legend.title = element_text(size = 32),
+    legend.text = element_text(size = 30),
+    legend.key.size = unit(1.5, "cm"),
     axis.text = element_text(size = 26),
-    legend.key.size = unit(1, "cm"),
-    strip.text.y = element_text(size = 24),
-    axis.text.x = element_text(size = 26, angle = 45, hjust = 1),
+    strip.text.y = element_text(size = 28),
+    axis.text.x = element_text(size = 28, angle = 45, hjust = 1),
     axis.title = element_text(size = 30)
   )
 
@@ -379,6 +393,8 @@ antibiotic_diverse_serotype <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_T
 
 Continent <- c("AFRICA", "NORTH AMERICA", "LATIN AMERICA", "EUROPE", "ASIA", "OCEANIA")
 
+period <- c("PREPCV13", "POSTPCV13")
+
 world <- map_data("world")
 world <- subset(world, region != "Antarctica")
 
@@ -386,18 +402,20 @@ setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/figures")
 
 
 
-### request from steph
-### change for full report
-
-
 ### panel and forest plot for loops
-for(i in antibiotic){
+for(p in period){
+  
+  metadata_period <- metadata |>
+    filter(vaccine_binom %in% p)
+  
+  
+  for(i in antibiotic){
   
   #filter out isolates that failed resistance prediction
-  tidy_dataset <- metadata_age_manifest |> filter(!!((sym(i))) %in% c("S", "I", "R"))
+  tidy_dataset <- metadata_period |> filter(!!((sym(i))) %in% c("S", "I", "R"))
   
   ### create new directory for each looped variable
-  newdir <- paste0(i, " plots")
+  newdir <- paste0(i, " plots ", p)
 
   dir.create(newdir)
   
@@ -787,7 +805,7 @@ for(i in antibiotic){
   
   # forest plots
   
-  newdir <- paste0(i, " forest plot")
+  newdir <- paste0(i, " forest plot ", p)
   
   dir.create(newdir)
   
@@ -796,6 +814,657 @@ for(i in antibiotic){
   complete <- tidy_dataset |> filter(!!((sym(i))) %in% c("S", "I", "R"))
   
 
+  
+  #forest plot for resistance in north american countries
+  NorthAmerica <- complete |>
+    filter(Continent %in% "NORTH AMERICA") |>
+    group_by(Country, !!sym((i))) |>
+    tally() |>
+    pivot_wider(names_from = !!sym((i)), values_from = n)
+  
+  if(!"R" %in% names(NorthAmerica)) {NorthAmerica$R <- 0
+  NorthAmerica$total <- rowSums(NorthAmerica[, !colnames(NorthAmerica) %in% "Country"], na.rm = TRUE)
+  NorthAmerica[is.na(NorthAmerica)] <- 0
+  nameta <- metaprop(R, total, data = NorthAmerica)
+  }
+  
+  else NorthAmerica$total <- rowSums(NorthAmerica[, !colnames(NorthAmerica) %in% "Country"], na.rm = TRUE)
+  NorthAmerica[is.na(NorthAmerica)] <- 0
+  nameta <- metaprop(R, total, data = NorthAmerica)
+  
+  svg(file = napath, width = 11, height = 3)
+  forest(nameta, comb.fixed = nameta$comb.fixed, comb.random = nameta$comb.random, 
+         overall = TRUE, studlab = NorthAmerica$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+  dev.off()
+  
+  
+  #latin america
+  LatinAmerica <- complete |>
+    filter(Continent %in% "LATIN AMERICA") |>
+    group_by(Country, !!sym((i))) |>
+    tally() |>
+    pivot_wider(names_from = !!sym((i)), values_from = n)
+  
+  lapath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/la forest.svg", sep = ""), fsep = "/")
+  
+  if(!"R" %in% names(LatinAmerica)) {LatinAmerica$R <- 0
+  LatinAmerica$total <- rowSums(LatinAmerica[, !colnames(LatinAmerica) %in% "Country"], na.rm = TRUE)
+  LatinAmerica[is.na(LatinAmerica)] <- 0
+  lameta <- metaprop(R, total, data = LatinAmerica)
+  }
+  
+  else LatinAmerica$total <- rowSums(LatinAmerica[, !colnames(LatinAmerica) %in% "Country"], na.rm = TRUE)
+  LatinAmerica[is.na(LatinAmerica)] <- 0
+  lameta <- metaprop(R, total, data = LatinAmerica)
+  
+  svg(file = lapath, width = 11, height = 3)
+  forest(lameta, comb.fixed = lameta$comb.fixed, comb.random = lameta$comb.random, 
+         overall = TRUE, studlab = LatinAmerica$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+  dev.off()
+  
+  #europe
+  Europe <- complete |>
+    filter(Continent %in% "EUROPE") |>
+    group_by(Country, !!sym((i))) |>
+    tally() |>
+    pivot_wider(names_from = !!sym((i)), values_from = n)
+  
+  eupath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/eu forest.svg", sep = ""), fsep = "/")
+  
+  if(!"R" %in% names(Europe)){Europe$R <- 0
+  Europe$total <- rowSums(Europe[, !colnames(Europe) %in% "Country"], na.rm = TRUE)
+  Europe[is.na(Europe)] <- 0
+  eumeta <- metaprop(R, total, data = Europe)
+  }
+  
+  else Europe$total <- rowSums(Europe[, !colnames(Europe) %in% "Country"], na.rm = TRUE)
+  Europe[is.na(Europe)] <- 0
+  eumeta <- metaprop(R, total, data = Europe)
+  
+  svg(file = eupath, width = 11, height = 6)
+  forest(eumeta, comb.fixed = eumeta$comb.fixed, comb.random = eumeta$comb.random, 
+         overall = TRUE, studlab = Europe$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+  dev.off()
+  
+  #asia
+  Asia <- complete |>
+    filter(Continent %in% "ASIA") |>
+    group_by(Country, !!sym((i))) |>
+    tally() |>
+    pivot_wider(names_from = !!sym((i)), values_from = n)
+  
+  aspath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/as forest.svg", sep = ""), fsep = "/")
+  
+  if(!"R" %in% names(Asia)){Asia$R <- 0
+  Asia$total <- rowSums(Asia[, !colnames(Asia) %in% "Country"], na.rm = TRUE)
+  Asia[is.na(Asia)] <- 0
+  asmeta <- metaprop(R, total, data = Asia)
+  }
+  
+  else Asia$total <- rowSums(Asia[, !colnames(Asia) %in% "Country"], na.rm = TRUE)
+  Asia[is.na(Asia)] <- 0
+  asmeta <- metaprop(R, total, data = Asia)
+  
+  svg(file = aspath, width = 11, height = 6)
+  forest(asmeta, comb.fixed = asmeta$comb.fixed, comb.random = asmeta$comb.random, 
+         overall = TRUE, studlab = Asia$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+  dev.off()
+  
+  #africa
+  Africa <- complete |>
+    filter(Continent %in% "AFRICA") |>
+    group_by(Country, !!sym((i))) |>
+    tally() |>
+    pivot_wider(names_from = !!sym((i)), values_from = n)
+  
+  afpath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/af forest.svg", sep = ""), fsep = "/")
+  
+  if(!"R" %in% names(Africa)){Africa$R <- 0
+  Africa$total <- rowSums(Africa[, !colnames(Africa) %in% "Country"], na.rm = TRUE)
+  Africa[is.na(Africa)] <- 0
+  afmeta <- metaprop(R, total, data = Africa)
+  }
+  
+  else Africa$total <- rowSums(Africa[, !colnames(Africa) %in% "Country"], na.rm = TRUE)
+  Africa[is.na(Africa)] <- 0
+  afmeta <- metaprop(R, total, data = Africa)
+  
+  svg(file = afpath, width = 11, height = 6)
+  forest(afmeta, comb.fixed = afmeta$comb.fixed, comb.random = afmeta$comb.random, 
+         overall = TRUE, studlab = Africa$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+  dev.off()
+  
+  #oceania
+  Oceania <- complete |>
+    filter(Continent %in% "OCEANIA") |>
+    group_by(Country, !!sym((i))) |>
+    tally() |>
+    pivot_wider(names_from = !!sym((i)), values_from = n)
+  
+  ocepath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/oce forest.svg", sep = ""), fsep = "/")
+  
+  if(!"R" %in% names(Oceania)){Oceania$R <- 0
+  Oceania$total <- rowSums(Oceania[, !colnames(Oceania) %in% "Country"], na.rm = TRUE)
+  Oceania[is.na(Oceania)] <- 0
+  ocemeta <- metaprop(R, total, data = Oceania) 
+  }
+  
+  else Oceania$total <- rowSums(Oceania[, !colnames(Oceania) %in% "Country"], na.rm = TRUE)
+  Oceania[is.na(Oceania)] <- 0
+  ocemeta <- metaprop(R, total, data = Oceania)
+  
+  svg(file = ocepath, width = 11, height = 2.5)
+  forest(ocemeta, comb.fixed = ocemeta$comb.fixed, comb.random = ocemeta$comb.random, 
+         overall = TRUE, studlab = Oceania$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+  dev.off()
+  
+  
+  ### overview table of proportion resistance in each continent
+  
+  df_name <- paste(i, "_proportion_", sep = "")
+  
+  # back conversion of proportion values and CI for each continent
+  random_est_na <- c(nameta$TE.random, nameta$lower.random, nameta$upper.random)
+  
+  random_est_na_tr <- as.data.frame(t(backtransf(random_est_na, sm = "PLOGIT")))
+  
+  random_est_eu <- c(eumeta$TE.random, eumeta$lower.random, eumeta$upper.random)
+  
+  random_est_eu_tr <- as.data.frame(t(backtransf(random_est_eu, sm = "PLOGIT")))
+  
+  random_est_af <- c(afmeta$TE.random, afmeta$lower.random, afmeta$upper.random)
+  
+  random_est_af_tr <- as.data.frame(t(backtransf(random_est_af, sm = "PLOGIT")))
+  
+  random_est_as <- c(asmeta$TE.random, asmeta$lower.random, asmeta$upper.random)
+  
+  random_est_as_tr <- as.data.frame(t(backtransf(random_est_as, sm = "PLOGIT")))
+  
+  random_est_oce <- c(ocemeta$TE.random, ocemeta$lower.random, ocemeta$upper.random)
+  
+  random_est_oce_tr <- as.data.frame(t(backtransf(random_est_oce, sm = "PLOGIT")))
+  
+  random_est_la <- c(lameta$TE.random, lameta$lower.random, lameta$upper.random)
+  
+  random_est_la_tr <- as.data.frame(t(backtransf(random_est_la, sm = "PLOGIT")))
+  
+  
+  # bind proportions for each continent into a singular dataframe
+  proportion_table <- rbind(random_est_na_tr, random_est_eu_tr, random_est_af_tr,
+                            random_est_la_tr, random_est_as_tr, random_est_oce_tr)
+  
+  # create column for continent
+  proportion_table <- proportion_table |>
+    mutate(
+      Continent = c("North America", "Europe", "Africa",
+                    "Latin America", "Asia", "Oceania")) |>
+    relocate(Continent) |>
+    head()
+  
+  # rename columns
+  colnames(proportion_table) <- c("Continent", "Proportion", "Lower", "Upper")
+  
+  # save proportion table for each antibiotic into their respective folder
+  proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/proportion.csv", sep = ""), fsep = "/")
+  write_csv(proportion_table, file = proportion_path)
+  
+  # round to 2 significant figures
+  proportion_table <- proportion_table |>
+    mutate(across(c("Proportion", "Lower", "Upper"), round, 2))
+  
+  # paste proportion and CIs togther
+  proportion_table$proportion_ci <- paste0(proportion_table$Proportion, " (", proportion_table$Lower, ", ", proportion_table$Upper, ")")
+  
+  # select for continent and proportion/CI columns
+  proportion_table <- proportion_table |>
+    select(c(Continent, proportion_ci))
+  
+  # rename proportion/CI column based on looped variable
+  colnames(proportion_table)[which(names(proportion_table) == "proportion_ci")] <- df_name
+  
+  # rename proportion table to looped variable
+  assign(df_name, proportion_table)
+  
+  }
+
+  newdir <- paste0("complete proportion ",p)
+  
+  dir.create(newdir)
+  
+  ### compile random effects model proportion table
+  # create list of proportion table dataframes for each antibiotic
+  df_list <- list(WGS_AMO_SIR_proportion, WGS_PEN_SIR_Meningitis_proportion, WGS_CFX_SIR_proportion,
+                  WGS_TAX_SIR_Meningitis_proportion, WGS_CFT_SIR_Meningitis_proportion, WGS_MER_SIR_proportion,
+                  WGS_CHL_SIR_proportion, WGS_CLI_SIR_proportion, WGS_ERY_SIR_proportion,
+                  WGS_TET_SIR_proportion, WGS_COT_SIR_proportion, WGS_RIF_SIR_proportion, WGS_KAN_SIR_proportion, MDR_proportion)
+  
+  # join all tables together
+  complete_proportion_table <- df_list |>
+    reduce(left_join, by = "Continent")
+  
+  colnames(complete_proportion_table) <- c("Continent", "Amoxicillin", "Penicillin", "Cefuroxime", "Cefotaxime", 
+                                           "Ceftriaxone", "Meropenem", "Chloramphenicol", "Clindamycin", "Erythromycin", 
+                                           "Tetracycline", "Co-trimoxazole", "Rifampin", "Kanamycin", "MDR")
+  
+  # save proportion table for each antibiotic into their respective folder
+  complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir,"/complete proportion.csv", sep = ""), fsep = "/")
+  
+  write_csv(complete_proportion_table, file = complete_proportion_path)
+  
+  
+}
+
+
+
+# complete pooled proportion
+
+
+### panel and forest plot for loops
+for(i in antibiotic){
+  
+  #filter out isolates that failed resistance prediction
+  tidy_dataset <- metadata |> filter(!!((sym(i))) %in% c("S", "I", "R"))
+  
+  ### create new directory for each looped variable
+  newdir <- paste0(i, " plots")
+  
+  dir.create(newdir)
+  
+  ### data tidying, relevel factors
+  tidy_dataset$Age_category <- factor(tidy_dataset$Age_category, levels = c("< 5", ">=5 - <=65", "> 65"))
+  tidy_dataset$Manifest_category <- factor(tidy_dataset$Manifest_category, levels = c("CARRIAGE", "DIS_CAR", "IPD", "NONINVASIVE_DISEASE", "UNKNOWN"))
+  tidy_dataset[[i]] <- factor(tidy_dataset[[i]], levels = c("S", "I", "R"))
+  
+  tidy_dataset$Manifest_category_tidy <- ifelse(tidy_dataset$Manifest_category %in% "CARRIAGE", "Carriage",
+                                                ifelse(tidy_dataset$Manifest_category %in% "DIS_CAR", "Diseased carriage",
+                                                       ifelse(tidy_dataset$Manifest_category %in% "IPD", "IPD",
+                                                              ifelse(tidy_dataset$Manifest_category %in% "NONINVASIVE_DISEASE", "Non-invasive disease",
+                                                                     ifelse(tidy_dataset$Manifest_category %in% "UNKNOWN", "Unknown", "Unknown")))))
+  
+  ### prep for age group bar plot
+  age_tally <- tidy_dataset |>
+    filter(!is.na(Age_category)) |>
+    filter(!is.na(Manifest_category_tidy)) |>
+    filter(!!((sym(i))) %in% c("S", "I", "R")) |>
+    group_by(Age_category, !!((sym(i))), Manifest_category_tidy) |>
+    tally()
+  
+  total_tally <- tidy_dataset |>
+    filter(!is.na(Age_category)) |>
+    filter(!is.na(Manifest_category_tidy)) |>
+    filter(!!((sym(i))) %in% c("S", "I", "R")) |>
+    group_by(Age_category) |>
+    tally()
+  
+  join <- left_join(age_tally, total_tally, by = "Age_category")
+  
+  ### define path to save csv
+  age_manifest_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/age manifest table.csv", sep = ""), fsep = "/")
+  
+  ### csv file for number of resistant isolates in each age group for each disease manifestation
+  write_csv(join, file = age_manifest_path)
+  
+  ### calculate percentage
+  age_tally_manifest <- join |>
+    reframe(
+      res_manifest = ifelse(!.data[[i]] == "R", "S", as.character(Manifest_category_tidy)),
+      percentage = n.x/n.y,
+      .groups = "keep"
+    ) 
+  
+  ### manual relevelling of factors
+  age_tally_manifest$res_manifest <- factor(age_tally_manifest$res_manifest, levels = c("S", "Carriage", "Diseased carriage", "IPD", "Non-invasive disease", "Unknown"))
+  age_tally_manifest$Age_category <- factor(age_tally_manifest$Age_category, levels = c("< 5", ">=5 - <=65", "> 65"))
+  
+  ### manifestation in resistant isolates within each age group
+  age_manifest <- age_tally_manifest |>
+    filter(!res_manifest %in% "S") |>
+    ggplot(aes(x = Age_category, y = percentage, fill = res_manifest)) +
+    geom_bar(stat = "identity") +
+    scale_fill_manual(values = c("#BA55D3", "#2ECC71", "#00BFFF", "#FF8C00", "gray")) +
+    scale_y_continuous(labels = scales::percent) +
+    theme(
+      legend.title = element_text(size = 11),
+      legend.text = element_text(size = 8),
+      legend.key.size = unit(0.6, "cm"),
+      plot.margin = margin(0, 0, 0, 5),
+      axis.title = element_text(size = 11),
+      axis.text = element_text(size = 10),
+      axis.text.x = element_text(size = 10)
+    ) +
+    labs(
+      fill = "Clinical \nmanifestation",
+      y = "Percentage",
+      x = "Age category"
+    ) 
+  
+  ### scatterpie prep
+  
+  grouping <- tidy_dataset |>
+    filter(!!((sym(i))) %in% c("S", "I", "R")) |>
+    group_by(!!((sym(i)))) |>
+    tally() |>
+    pivot_wider(names_from = !!((sym(i))), values_from = n)
+  
+  if("I" %in% names(grouping)){
+    
+    
+    pivot_SIR <- tidy_dataset |>
+      filter(!is.na(Continent)) |>
+      filter(!!((sym(i))) %in% c("S", "I", "R")) |>
+      group_by(Continent, !!((sym(i)))) |>
+      tally() |>
+      pivot_wider(names_from = !!((sym(i))), values_from = n)
+    
+    pivot_SIR[is.na(pivot_SIR)] = 0
+    
+    pivot_plot <- pivot_SIR |>
+      mutate(
+        Longitude = as.numeric(case_when(
+          Continent == "AFRICA" ~ 21.890909,
+          Continent == "NORTH AMERICA" ~ -100.538118,
+          Continent == "LATIN AMERICA" ~ -53.604523,
+          Continent == "EUROPE" ~ 15.738565,
+          Continent == "ASIA" ~ 110.308879,
+          Continent == "OCEANIA" ~ 150.562787
+        )),
+        Latitude = as.numeric(case_when(
+          Continent == "AFRICA" ~ 6.208920,
+          Continent == "NORTH AMERICA" ~ 49.249542,
+          Continent == "LATIN AMERICA" ~ -12.581874,
+          Continent == "EUROPE" ~ 50.890969,
+          Continent == "ASIA" ~ 41.691447,
+          Continent == "OCEANIA" ~ -28.553076
+        )))
+    
+    pivot_plot$Total <- rowSums(pivot_plot[, !colnames(pivot_plot) %in% c("Continent", "Longitude", "Latitude")], na.rm = TRUE)
+  } else
+  {
+    
+    
+    pivot_SIR <- tidy_dataset |>
+      filter(!is.na(Continent)) |>
+      filter(!!((sym(i))) %in% c("S", "R")) |>
+      group_by(Continent, !!((sym(i)))) |>
+      tally() |>
+      pivot_wider(names_from = !!((sym(i))), values_from = n)
+    
+    pivot_SIR[is.na(pivot_SIR)] = 0
+    
+    pivot_plot <- pivot_SIR |>
+      mutate(
+        Longitude = as.numeric(case_when(
+          Continent == "AFRICA" ~ 21.890909,
+          Continent == "NORTH AMERICA" ~ -100.538118,
+          Continent == "LATIN AMERICA" ~ -53.604523,
+          Continent == "EUROPE" ~ 15.738565,
+          Continent == "ASIA" ~ 110.308879,
+          Continent == "OCEANIA" ~ 150.562787
+        )),
+        Latitude = as.numeric(case_when(
+          Continent == "AFRICA" ~ 6.208920,
+          Continent == "NORTH AMERICA" ~ 49.249542,
+          Continent == "LATIN AMERICA" ~ -12.581874,
+          Continent == "EUROPE" ~ 50.890969,
+          Continent == "ASIA" ~ 41.691447,
+          Continent == "OCEANIA" ~ -28.553076
+        )))
+    
+    pivot_plot$Total <- rowSums(pivot_plot[, !colnames(pivot_plot) %in% c("Continent", "Longitude", "Latitude")], na.rm = TRUE)
+  }
+  
+  if(!"I" %in% names(pivot_plot)){
+    plot <- ggplot() +
+      geom_polygon(data = world, aes(x=long, y = lat, group = group)) + 
+      coord_fixed(1.3) +
+      geom_scatterpie(data = pivot_plot, aes(x = Longitude, y = Latitude, r = 13), cols = c("S", "R"), color = NA) + 
+      coord_equal() +
+      scale_fill_manual(values = c("#0069EC", "#FF2722")) +
+      labs(
+        x = "Longitude",
+        y = "Latitude",
+        fill = "Resistance"
+      ) +
+      theme(
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 10),
+        legend.key.size = unit(0.6, "cm"),
+        legend.position.inside = c(.1,.35),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid.major = element_blank(),
+        plot.margin = margin(-20, 0, 0, 10)
+      ) 
+    
+  } else
+    plot <- ggplot() +
+    geom_polygon(data = world, aes(x=long, y = lat, group = group)) + 
+    coord_fixed(1.3) +
+    geom_scatterpie(data = pivot_plot, aes(x = Longitude, y = Latitude, r = 13), cols = c("S", "I", "R"), color = NA) + 
+    coord_equal() +
+    scale_fill_manual(values = c("#0069EC", "#F797B1", "#FF2722")) +
+    labs(
+      x = "Longitude",
+      y = "Latitude",
+      fill = "Resistance"
+    ) +
+    theme(
+      legend.title = element_text(size = 11),
+      legend.text = element_text(size = 10),
+      legend.key.size = unit(0.6, "cm"),
+      legend.position.inside = c(.1,.35),
+      axis.text = element_blank(),
+      axis.title = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid.major = element_blank(),
+      plot.margin = margin(-20, 0, 0, 10)
+    ) 
+  
+  SIR_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/SIR table.csv", sep = ""), fsep = "/")
+  write_csv(pivot_plot, file = SIR_path)
+  
+  map_manifest <- ggarrange(plot, age_manifest, widths = c(1.5, 1.25), heights = c(1, 1), labels = c("(a)", "(b)"), label.y = 1.01, font.label=list(color="black",size=12), hjust = c(0.5,0,0)) +
+    theme(
+      plot.margin = margin(10, 0, 10, 0)
+    )
+  tidy_dataset[[i]] <- factor(tidy_dataset[[i]], levels = c("S", "I", "R"))
+  
+  ### year plot
+  if(!"I" %in% names(pivot_plot)){
+    year <- tidy_dataset |>
+      filter(!!((sym(i))) %in% c("S", "I", "R")) |>
+      filter(!Year %in% "_" & !is.na(Year)) |>
+      ggplot(aes(x = as.factor(Year), fill = !!((sym(i))))) +
+      geom_bar() +
+      scale_fill_manual(values = c("#0069EC", "#FF2722")) +
+      theme(
+        axis.text = element_text(size = 10),
+        plot.title = element_text(size = 8),
+        legend.position = "none",
+        axis.title = element_text(size = 11),
+        axis.text.x = element_text(size = 10, angle = 45, hjust = 1)
+      ) +
+      labs(
+        y = "Number of\nisolates",
+        x = "Year",
+        fill = "Resistance"
+      )
+    
+  } else
+    year <- tidy_dataset |>
+    filter(!!((sym(i))) %in% c("S", "I", "R")) |>
+    filter(!Year %in% "_" & !is.na(Year)) |>
+    ggplot(aes(x = as.factor(Year), fill = !!((sym(i))))) +
+    geom_bar() +
+    scale_fill_manual(values = c("#0069EC", "#F797B1", "#FF2722")) +
+    theme(
+      axis.text = element_text(size = 10),
+      legend.position = "none",
+      axis.title = element_text(size = 11),
+      axis.text.x = element_text(size = 10, angle = 45, hjust = 1)
+    ) +
+    labs(
+      y = "Number of\nisolates",
+      x = "Year",
+      fill = "Resistance"
+    ) 
+  
+  ### serotype GPSC plot
+  
+  tidy_dataset$GPSC <- sub(".*?;", "", tidy_dataset$GPSC)
+  
+  n50 <- tidy_dataset |>
+    filter(!!((sym(i))) %in% "R" & !is.na(GPSC)) |>
+    group_by(GPSC) |>
+    tally() 
+  
+  tally_50 <- n50[order(n50$n, decreasing = TRUE),] |>
+    slice_head(n = 25)
+  
+  GPSC_list <- sort(unique(as.numeric(tally_50$GPSC)))
+  
+  tidy_modified <- tidy_dataset |>
+    mutate(
+      gpsc_tidy = ifelse(GPSC %in% GPSC_list, tidy_dataset$GPSC, "others")
+    ) |>
+    filter(!gpsc_tidy %in% c("others"))
+  
+  serotype_colours_vector <- setNames(tidy_modified$serotype_colour, tidy_modified$serotype_clean)
+  
+  if (!i %in% antibiotic_join) {
+    GPSC_serotype_1 <- tidy_modified |>
+      filter(!!((sym(i))) %in% "R" & gpsc_tidy %in% "1") |>
+      ggplot(aes(x = factor(gpsc_tidy, levels = GPSC_list), fill = serotype_clean)) +
+      geom_bar() +
+      scale_fill_manual(name = "Serotype",
+                        values = serotype_colours_vector,
+                        guide = guide_legend(ncol = 1)) +
+      labs(
+        x = "GPSC",
+        y = "Number of isolates"
+      ) +
+      theme(
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 8),
+        legend.key.size = unit(0.4, "cm"),
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 11),
+        axis.text.x = element_text(size = 10),
+        plot.margin = margin(15, 0, 0, 0)
+      )
+    
+    GPSC_serotype_others <- tidy_modified |>
+      filter(!!((sym(i))) %in% "R" & !gpsc_tidy %in% "1") |>
+      ggplot(aes(x = factor(gpsc_tidy, levels = GPSC_list), fill = serotype_clean)) +
+      geom_bar() +
+      scale_fill_manual(name = "Serotype",
+                        values = serotype_colours_vector,
+                        guide = guide_legend(ncol = 3)) +
+      labs(
+        x = "GPSC",
+        y = "Number of isolates"
+      ) +
+      theme(
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 8),
+        legend.key.size = unit(0.4, "cm"),
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 11),
+        axis.text.x = element_text(size = 8),
+        plot.margin = margin(15, 0, 0, 0)
+      )
+    
+    GPSC_serotype_plot <- ggarrange(GPSC_serotype_1, GPSC_serotype_others, widths = c(1.25, 5)) 
+    
+    GPSC_serotype_year <- ggarrange(year, GPSC_serotype_plot, ncol = 1, heights = c(1.5, 2), labels = c("(c)", "(d)"), font.label=list(color="black",size=12), hjust = c(0,0,0))
+    
+    full_plot <- ggarrange(map_manifest, GPSC_serotype_year, ncol = 1, heights = c(1, 2)) +
+      theme(
+        plot.margin = margin(0.5,0.3,0.5,0.3, "cm")
+      )
+    
+    
+  } else if (i %in% antibiotic_diverse_serotype) {
+    GPSC_serotype_plot <- tidy_modified |>
+      filter(!!((sym(i))) %in% "R") |>
+      ggplot(aes(x = factor(gpsc_tidy, levels = GPSC_list), fill = serotype_clean)) +
+      geom_bar() +
+      scale_fill_manual(name = "Serotype",
+                        values = serotype_colours_vector,
+                        guide = guide_legend(ncol = 4)) +
+      labs(
+        x = "GPSC",
+        y = "Number of isolates"
+      ) +
+      theme(
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 8),
+        legend.key.size = unit(0.4, "cm"),
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 11),
+        axis.text.x = element_text(size = 8),
+        plot.margin = margin(15, 0, 0, 0)
+      )
+    
+    GPSC_serotype_year <- ggarrange(year, GPSC_serotype_plot, ncol = 1, heights = c(1.5, 2), labels = c("(c)", "(d)"), font.label=list(color="black",size=12), hjust = c(0,0,0))
+    
+    full_plot <- ggarrange(map_manifest, GPSC_serotype_year, ncol = 1, heights = c(1, 2)) +
+      theme(
+        plot.margin = margin(0.5,0.3,0.5,0.3, "cm")
+      )
+    
+    
+  } else {
+    
+    GPSC_serotype_plot <- tidy_modified |>
+      filter(!!((sym(i))) %in% "R") |>
+      ggplot(aes(x = factor(gpsc_tidy, levels = GPSC_list), fill = serotype_clean)) +
+      geom_bar() +
+      scale_fill_manual(name = "Serotype",
+                        values = serotype_colours_vector,
+                        guide = guide_legend(ncol = 3)) +
+      labs(
+        x = "GPSC",
+        y = "Number of isolates"
+      ) +
+      theme(
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 8),
+        legend.key.size = unit(0.4, "cm"),
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 11),
+        axis.text.x = element_text(size = 8),
+        plot.margin = margin(15, 0, 0, 0)
+      )
+    
+    GPSC_serotype_year <- ggarrange(year, GPSC_serotype_plot, ncol = 1, heights = c(1.5, 2), labels = c("(c)", "(d)"), font.label=list(color="black",size=12), hjust = c(0,0,0))
+    
+    full_plot <- ggarrange(map_manifest, GPSC_serotype_year, ncol = 1, heights = c(1, 2)) +
+      theme(
+        plot.margin = margin(0.5,0.3,0.5,0.3, "cm")
+      )
+    
+  }
+  
+  
+  
+  full_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/full plot.svg", sep = ""), fsep = "/")
+  
+  ggsave(full_plot, filename = full_plot_path, dpi = 320, width = 26.58, height = 16.91, units = "cm")
+  
+  
+  # forest plots
+  
+  newdir <- paste0(i, " forest plot")
+  
+  dir.create(newdir)
+  
+  napath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/na forest.svg", sep = ""), fsep = "/")
+  
+  complete <- tidy_dataset |> filter(!!((sym(i))) %in% c("S", "I", "R"))
+  
+  
   
   #forest plot for resistance in north american countries
   NorthAmerica <- complete |>
@@ -1006,15 +1675,15 @@ for(i in antibiotic){
   
   # rename proportion table to looped variable
   assign(df_name, proportion_table)
-
+  
 } 
 
 ### compile random effects model proportion table
 # create list of proportion table dataframes for each antibiotic
 df_list <- list(WGS_AMO_SIR_proportion, WGS_PEN_SIR_Meningitis_proportion, WGS_CFX_SIR_proportion,
-                                       WGS_TAX_SIR_Meningitis_proportion, WGS_CFT_SIR_Meningitis_proportion, WGS_MER_SIR_proportion,
-                                       WGS_CHL_SIR_proportion, WGS_CLI_SIR_proportion, WGS_ERY_SIR_proportion,
-                                       WGS_TET_SIR_proportion, WGS_COT_SIR_proportion, WGS_RIF_SIR_proportion, WGS_KAN_SIR_proportion, MDR_proportion)
+                WGS_TAX_SIR_Meningitis_proportion, WGS_CFT_SIR_Meningitis_proportion, WGS_MER_SIR_proportion,
+                WGS_CHL_SIR_proportion, WGS_CLI_SIR_proportion, WGS_ERY_SIR_proportion,
+                WGS_TET_SIR_proportion, WGS_COT_SIR_proportion, WGS_RIF_SIR_proportion, WGS_KAN_SIR_proportion, MDR_proportion)
 
 # join all tables together
 complete_proportion_table <- df_list |>
@@ -1025,7 +1694,7 @@ colnames(complete_proportion_table) <- c("Continent", "Amoxicillin", "Penicillin
                                          "Tetracycline", "Co-trimoxazole", "Rifampin", "Kanamycin", "MDR")
 
 # save proportion table for each antibiotic into their respective folder
-complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summarised data", "/complete proportion.csv", fsep = "/")
+complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "/complete proportion.csv", fsep = "/")
 
 write_csv(complete_proportion_table, file = complete_proportion_path)
 
@@ -1036,25 +1705,16 @@ write_csv(complete_proportion_table, file = complete_proportion_path)
 
 
 
-
-
 #----------------------------------------- GPSC and serotypes driving resistance pre/post PCV10/13 ----------------
 
-# classify vaccine period into pre/post pcv10
-
-metadata_vaccine_period <- metadata |>
-  mutate(
-    vaccine_binom = ifelse(Vaccine_period_clean %in% c("PREPCV", "POSTPCV7", "POSTPCV10"), "PREPCV13",
-                           ifelse(Vaccine_period_clean %in% "POSTPCV13", "POSTPCV13", "NA"))
-  )
 
 # metadata_vaccine_period$vaccine_binom <- factor(metadata_vaccine_period$vaccine_binom, levels = c("PREPCV10", "POSTPCV10"))
 
-serotype_colors_vector <- setNames(metadata_vaccine_period$serotype_colour, metadata_vaccine_period$serotype_clean)
+serotype_colors_vector <- setNames(metadata$serotype_colour, metadata$serotype_clean)
 
 
 # obtain list of countries with 5 or more pre and post pcv10 isolates
-continent_country_period <- metadata_vaccine_period |>
+continent_country_period <- metadata |>
   group_by(Continent, Country, vaccine_binom) |>
   tally() |>
   filter(n > 10)
@@ -1267,13 +1927,13 @@ resistance_reference_change <- forloop_output |>
 
 
 # tile plot
-forloop_output |>
+pre_post_plot <- forloop_output |>
   ggplot(aes(x = factor(GPSC, levels = eu_gpsc_vector), y = antibiotic_tidy, fill = proportion_change)) +
   geom_tile(colour = "black") +
   scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0, limits = c(-1,1)) +
   coord_fixed() +
   theme(
-    plot.margin = unit(c(-4,0,0,0), 'lines')
+    plot.margin = unit(c(0,0,0,0), 'lines')
   ) +
   labs(
     y = "Antibiotic",
@@ -1282,17 +1942,19 @@ forloop_output |>
     title = "Change in prevalence of resistance pre- and post-PCV13 in Europe"
   ) +
   theme(
-    title = element_text(size = 32),
-    axis.title.y = element_text(size = 32),
-    axis.text.y = element_text(size = 28),
-    axis.title.x = element_text(size = 32),
-    axis.text.x = element_text(size = 28),
+    title = element_text(size = 20),
+    axis.title.y = element_text(size = 22),
+    axis.text.y = element_text(size = 18),
+    axis.title.x = element_text(size = 22),
+    axis.text.x = element_text(size = 18),
     axis.ticks = element_blank(),
-    legend.title = element_text(margin = margin(b = 20, unit = "pt"), size = 24),
-    legend.text = element_text(size = 24),
-    legend.key.size = unit(1.2, "cm")
+    legend.title = element_text(margin = margin(b = 20, unit = "pt"), size = 16),
+    legend.text = element_text(size = 16),
+    legend.key.size = unit(0.8, "cm")
   )
 
+
+ggsave(pre_post_plot, filename = "sample figures/pre post plot.svg", dpi = 320, width = 36.58, height = 22.91, units = "cm")
 
 
 
@@ -1450,12 +2112,12 @@ pcv13_coverage_figure <- serotype_coverage_vaccine_unique_clean_coloured |>
     legend.background = element_blank()
   )
 
-ggsave(pcv13_coverage_figure, file = "sample figures/vaccine coverage figure post pcv13.svg", , dpi = 320, width = 48, height = 36, units = "cm")
+ggsave(pcv13_coverage_figure, file = "sample figures/vaccine coverage figure post pcv13.svg", dpi = 320, width = 48, height = 36, units = "cm")
 
 serotype_coverage_vaccine_unique_clean_coloured$unique_serotype <- factor(serotype_coverage_vaccine_unique_clean_coloured$unique_serotype,
                                                                              levels = c("NVT", "PCV31", "PCV24_GSK", "PCV21_SK_SANOFI", "PCV20", "PCV15", "PCV13"))
 
-serotype_coverage_vaccine_unique_clean_coloured |>
+potential_coverage_plot <- serotype_coverage_vaccine_unique_clean_coloured |>
   ggplot(aes(x = antibiotic_tidy, y = n, fill = unique_serotype, colour = unique_serotype)) +
   geom_bar(position = position_stack(), stat = "identity") +
   facet_wrap(~Continent, ncol = 3, scales = "free_y")+
@@ -1480,6 +2142,8 @@ serotype_coverage_vaccine_unique_clean_coloured |>
     strip.text = element_text(size = 16),
     legend.background = element_blank()
   )
+
+ggsave(potential_coverage_plot, file = "sample figures/potential coverage figure.svg", dpi = 320, width = 48, height = 36, units = "cm")
 
 ### separate figure for PCV25
 
@@ -1543,7 +2207,7 @@ coverage_table <- rbind(coverage_clean, coverage_table)
 colnames(coverage_table) <- c("Continent", "Antibiotic", "PCV13", "PCV15", "PCV20", "PCV21 (SK/Sanofi)", "PCV24 (GSK)", "PCV31", "Total")
 
 
-
+write_csv(coverage_table, file = "sample figures/coverage table.csv")
 
 
 
