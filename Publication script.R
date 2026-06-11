@@ -23,6 +23,9 @@ metadata <- read.csv(file = "monocle-metadata - Copy.csv", na.strings = c("","NA
 # read in unpublished cambodia metadata
 cambodia <- read.csv(file = "cambodia.csv", na.strings = c("","NA"))
 
+cambodia <- cambodia |>
+  filter(Published %in% "N")
+
 # tidy antibiotics for plotting
 antibiotic_tidying <- read.csv(file = "antibiotic.csv")
 
@@ -68,9 +71,6 @@ metadata$Vaccine_period_clean <- gsub("\\-.*", "", metadata$Vaccine_period)
 metadata$Vaccine_period_clean <- factor(metadata$Vaccine_period_clean, 
                                             levels = c("PREPCV", "POSTPCV7", "POSTPCV10", "POSTPCV13"))
 
-# substitute FLAG for S
-metadata[31:68] <- lapply(metadata[31:68], gsub, pattern = "FLAG", replacement = "S", fixed = TRUE)
-
 
 # left join to match serotype with tidied serotype
 metadata <- left_join(metadata, clean_serotype, by = "In_silico_serotype") |>
@@ -81,10 +81,9 @@ metadata$serotype_clean <- ifelse(is.na(metadata$serotype_clean), metadata$In_si
 
 
 # join in colours 
-metadata <- left_join(metadata, serotype_colours, by = "serotype_clean") |>
-  rename(
-    serotype_colour = In_silico_serotype__colour.y 
-  )
+metadata <- left_join(metadata, serotype_colours, by = "serotype_clean")
+
+colnames(metadata)[colnames(metadata) == 'In_silico_serotype__colour.y'] <- 'serotype_colour'
 
 serotype_colors_vector <- setNames(metadata$In_silico_serotype__colour, metadata$serotype_clean)
 
@@ -95,6 +94,12 @@ metadata <- metadata |>
   ) |>
   relocate(WGS_KAN_SIR, .after = WGS_VAN_SIR)
 
+# substitute FLAG for S
+antibiotic <- c("WGS_PEN_SIR_Meningitis", "WGS_AMO_SIR", "WGS_TAX_SIR_Meningitis", "WGS_CFT_SIR_Meningitis",
+                "WGS_MER_SIR", "WGS_CFX_SIR", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR",
+                "WGS_CHL_SIR", "WGS_RIF_SIR", "WGS_KAN_SIR")
+
+metadata[antibiotic] <- lapply(metadata[antibiotic], gsub, pattern = "FLAG", replacement = "S", fixed = TRUE)
 
 # classify vaccine period into pre/post pcv13
 
@@ -408,6 +413,9 @@ for(p in period){
   metadata_period <- metadata |>
     filter(vaccine_binom %in% p)
   
+  maindir <- paste0(p," plots")
+  
+  dir.create(maindir)
   
   for(i in antibiotic){
   
@@ -448,7 +456,7 @@ for(p in period){
   join <- left_join(age_tally, total_tally, by = "Age_category")
   
   ### define path to save csv
-  age_manifest_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/age manifest table.csv", sep = ""), fsep = "/")
+  age_manifest_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/age manifest table.csv", sep = ""), fsep = "/")
   
   ### csv file for number of resistant isolates in each age group for each disease manifestation
   write_csv(join, file = age_manifest_path)
@@ -610,7 +618,7 @@ for(p in period){
       plot.margin = margin(-20, 0, 0, 10)
     ) 
   
-  SIR_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/SIR table.csv", sep = ""), fsep = "/")
+  SIR_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/SIR table.csv", sep = ""), fsep = "/")
   write_csv(pivot_plot, file = SIR_path)
   
   map_manifest <- ggarrange(plot, age_manifest, widths = c(1.5, 1.25), heights = c(1, 1), labels = c("(a)", "(b)"), label.y = 1.01, font.label=list(color="black",size=12), hjust = c(0.5,0,0)) +
@@ -798,7 +806,7 @@ for(p in period){
   
   
   
-  full_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/full plot.svg", sep = ""), fsep = "/")
+  full_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/full plot.svg", sep = ""), fsep = "/")
   
   ggsave(full_plot, filename = full_plot_path, dpi = 320, width = 26.58, height = 16.91, units = "cm")
 
@@ -809,7 +817,7 @@ for(p in period){
   
   dir.create(newdir)
   
-  napath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/na forest.svg", sep = ""), fsep = "/")
+  napath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/na forest.svg", sep = ""), fsep = "/")
   
   complete <- tidy_dataset |> filter(!!((sym(i))) %in% c("S", "I", "R"))
   
@@ -845,7 +853,7 @@ for(p in period){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  lapath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/la forest.svg", sep = ""), fsep = "/")
+  lapath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/la forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(LatinAmerica)) {LatinAmerica$R <- 0
   LatinAmerica$total <- rowSums(LatinAmerica[, !colnames(LatinAmerica) %in% "Country"], na.rm = TRUE)
@@ -869,7 +877,7 @@ for(p in period){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  eupath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/eu forest.svg", sep = ""), fsep = "/")
+  eupath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/eu forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Europe)){Europe$R <- 0
   Europe$total <- rowSums(Europe[, !colnames(Europe) %in% "Country"], na.rm = TRUE)
@@ -893,7 +901,7 @@ for(p in period){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  aspath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/as forest.svg", sep = ""), fsep = "/")
+  aspath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/as forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Asia)){Asia$R <- 0
   Asia$total <- rowSums(Asia[, !colnames(Asia) %in% "Country"], na.rm = TRUE)
@@ -917,7 +925,7 @@ for(p in period){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  afpath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/af forest.svg", sep = ""), fsep = "/")
+  afpath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/af forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Africa)){Africa$R <- 0
   Africa$total <- rowSums(Africa[, !colnames(Africa) %in% "Country"], na.rm = TRUE)
@@ -941,7 +949,7 @@ for(p in period){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  ocepath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/oce forest.svg", sep = ""), fsep = "/")
+  ocepath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/oce forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Oceania)){Oceania$R <- 0
   Oceania$total <- rowSums(Oceania[, !colnames(Oceania) %in% "Country"], na.rm = TRUE)
@@ -1005,7 +1013,7 @@ for(p in period){
   colnames(proportion_table) <- c("Continent", "Proportion", "Lower", "Upper")
   
   # save proportion table for each antibiotic into their respective folder
-  proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/proportion.csv", sep = ""), fsep = "/")
+  proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/proportion.csv", sep = ""), fsep = "/")
   write_csv(proportion_table, file = proportion_path)
   
   # round to 2 significant figures
@@ -1047,7 +1055,7 @@ for(p in period){
                                            "Tetracycline", "Co-trimoxazole", "Rifampin", "Kanamycin", "MDR")
   
   # save proportion table for each antibiotic into their respective folder
-  complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir,"/complete proportion.csv", sep = ""), fsep = "/")
+  complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir,"/complete proportion.csv", sep = ""), fsep = "/")
   
   write_csv(complete_proportion_table, file = complete_proportion_path)
   
@@ -1058,6 +1066,7 @@ for(p in period){
 
 # complete pooled proportion
 
+dir.create(path = "pooled plots")
 
 ### panel and forest plot for loops
 for(i in antibiotic){
@@ -1099,7 +1108,7 @@ for(i in antibiotic){
   join <- left_join(age_tally, total_tally, by = "Age_category")
   
   ### define path to save csv
-  age_manifest_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/age manifest table.csv", sep = ""), fsep = "/")
+  age_manifest_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/age manifest table.csv", sep = ""), fsep = "/")
   
   ### csv file for number of resistant isolates in each age group for each disease manifestation
   write_csv(join, file = age_manifest_path)
@@ -1261,7 +1270,7 @@ for(i in antibiotic){
       plot.margin = margin(-20, 0, 0, 10)
     ) 
   
-  SIR_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/SIR table.csv", sep = ""), fsep = "/")
+  SIR_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/SIR table.csv", sep = ""), fsep = "/")
   write_csv(pivot_plot, file = SIR_path)
   
   map_manifest <- ggarrange(plot, age_manifest, widths = c(1.5, 1.25), heights = c(1, 1), labels = c("(a)", "(b)"), label.y = 1.01, font.label=list(color="black",size=12), hjust = c(0.5,0,0)) +
@@ -1449,7 +1458,7 @@ for(i in antibiotic){
   
   
   
-  full_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/full plot.svg", sep = ""), fsep = "/")
+  full_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/full plot.svg", sep = ""), fsep = "/")
   
   ggsave(full_plot, filename = full_plot_path, dpi = 320, width = 26.58, height = 16.91, units = "cm")
   
@@ -1460,7 +1469,7 @@ for(i in antibiotic){
   
   dir.create(newdir)
   
-  napath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/na forest.svg", sep = ""), fsep = "/")
+  napath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/na forest.svg", sep = ""), fsep = "/")
   
   complete <- tidy_dataset |> filter(!!((sym(i))) %in% c("S", "I", "R"))
   
@@ -1496,7 +1505,7 @@ for(i in antibiotic){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  lapath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/la forest.svg", sep = ""), fsep = "/")
+  lapath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/la forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(LatinAmerica)) {LatinAmerica$R <- 0
   LatinAmerica$total <- rowSums(LatinAmerica[, !colnames(LatinAmerica) %in% "Country"], na.rm = TRUE)
@@ -1520,7 +1529,7 @@ for(i in antibiotic){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  eupath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/eu forest.svg", sep = ""), fsep = "/")
+  eupath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/eu forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Europe)){Europe$R <- 0
   Europe$total <- rowSums(Europe[, !colnames(Europe) %in% "Country"], na.rm = TRUE)
@@ -1544,7 +1553,7 @@ for(i in antibiotic){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  aspath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/as forest.svg", sep = ""), fsep = "/")
+  aspath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/as forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Asia)){Asia$R <- 0
   Asia$total <- rowSums(Asia[, !colnames(Asia) %in% "Country"], na.rm = TRUE)
@@ -1568,7 +1577,7 @@ for(i in antibiotic){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  afpath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/af forest.svg", sep = ""), fsep = "/")
+  afpath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/af forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Africa)){Africa$R <- 0
   Africa$total <- rowSums(Africa[, !colnames(Africa) %in% "Country"], na.rm = TRUE)
@@ -1592,7 +1601,7 @@ for(i in antibiotic){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  ocepath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/oce forest.svg", sep = ""), fsep = "/")
+  ocepath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/oce forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Oceania)){Oceania$R <- 0
   Oceania$total <- rowSums(Oceania[, !colnames(Oceania) %in% "Country"], na.rm = TRUE)
@@ -1656,7 +1665,7 @@ for(i in antibiotic){
   colnames(proportion_table) <- c("Continent", "Proportion", "Lower", "Upper")
   
   # save proportion table for each antibiotic into their respective folder
-  proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/proportion.csv", sep = ""), fsep = "/")
+  proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/proportion.csv", sep = ""), fsep = "/")
   write_csv(proportion_table, file = proportion_path)
   
   # round to 2 significant figures
@@ -1694,7 +1703,7 @@ colnames(complete_proportion_table) <- c("Continent", "Amoxicillin", "Penicillin
                                          "Tetracycline", "Co-trimoxazole", "Rifampin", "Kanamycin", "MDR")
 
 # save proportion table for each antibiotic into their respective folder
-complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "/complete proportion.csv", fsep = "/")
+complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", "/complete proportion.csv", fsep = "/")
 
 write_csv(complete_proportion_table, file = complete_proportion_path)
 
@@ -2213,11 +2222,89 @@ write_csv(coverage_table, file = "sample figures/coverage table.csv")
 
 
 
+#------------------------------------ beta-lactam analysis and concordance between 3rd gen cephalosporins -------------------------------------
+
+full_metadata <- read_csv(file = "monocle-metadata-all-columns.csv")
+
+australia <- read_csv(file = "australia.csv")
+
+complete_metadata <- rbind.fill(full_metadata, australia, cambodia)
+
+# filter for isolates that are PEN susceptible but intermediate or resistant for other beta lactams
+# all abnormal isolates are intermediate for CFX
+abnormal_resistance <- complete_metadata |>
+  select(1:13, AST_method_Cefuroxime, Cefuroxime, WGS_CFX, WGS_CFX_SIR, AST_method_Penicillin, Penicillin, WGS_PEN, WGS_PEN_SIR_Meningitis) |>
+  filter(WGS_PEN_SIR_Meningitis %in% "S" & !WGS_CFX_SIR %in% "S") |>
+  mutate(
+    AST_CFX_SIR = ifelse(Cefuroxime <= 0.5, "S",
+                         ifelse(Cefuroxime >= 2, "R", "I")),
+    AST_PEN_SIR = ifelse(Penicillin <= 0.12, "S", "R")
+  ) |>
+  relocate(AST_CFX_SIR, .after = Cefuroxime) |>
+  relocate(AST_PEN_SIR, .after = Penicillin)
 
 
+write_csv(abnormal_resistance, file = "summarised data/abnormal resistance.csv")
+
+# concordance between 3rd gen cephalosporins
+non_concordant <- complete_metadata |>
+  filter(WGS_CFT_SIR_Meningitis != WGS_TAX_SIR_Meningitis) |>
+  select(1:13, AST_method_Cefotaxime, Cefotaxime, WGS_TAX, WGS_TAX_SIR_Meningitis, AST_method_Ceftriaxone, Ceftriaxone, WGS_CFT, WGS_CFT_SIR_Meningitis) |>
+  mutate(
+    AST_TAX_SIR = ifelse(Cefotaxime <= 0.5, "S",
+                         ifelse(Cefotaxime >= 2, "R", "I")),
+    AST_CFT_SIR = ifelse(Ceftriaxone <= 0.5, "S",
+                         ifelse(Ceftriaxone >= 2, "R", "I")),
+    concordant_TAX = ifelse(AST_TAX_SIR == WGS_TAX_SIR_Meningitis, "T", "F"),
+    concordant_CFT = ifelse(AST_CFT_SIR == WGS_CFT_SIR_Meningitis, "T", "F"),
+    AST_concordant_3GC = ifelse(is.na(AST_CFT_SIR)|is.na(AST_TAX_SIR), "NA",
+                            ifelse(AST_CFT_SIR == AST_TAX_SIR, "T", "F"))
+  ) |>
+  relocate(AST_TAX_SIR, .after = Cefotaxime) |>
+  relocate(AST_CFT_SIR, .after = Ceftriaxone) |>
+  relocate(concordant_TAX, .after = WGS_TAX_SIR_Meningitis) |>
+  relocate(concordant_CFT, .after = WGS_CFT_SIR_Meningitis)
+
+write_csv(non_concordant, file = "summarised data/3rd gen cephalosporin non concordant.csv")
 
 
+# phenotypic and predicted MIC for TAX
+concordance_TAX <- non_concordant |>
+  filter(!is.na(AST_TAX_SIR) & !is.na(WGS_TAX_SIR_Meningitis)) |>
+  group_by(concordant_TAX) |>
+  tally() |>
+  mutate(
+    total = sum(n),
+    proportion = n/total
+  ) 
 
+write_csv(concordance_TAX, file = "summarised data/concordance TAX.csv")
+
+# phenotypic and predicted MIC for CFT
+concordance_CFT <- non_concordant |>
+  filter(!is.na(AST_CFT_SIR) & !is.na(WGS_CFT_SIR_Meningitis)) |>
+  group_by(concordant_CFT) |>
+  tally() |>
+  mutate(
+    total = sum(n),
+    proportion = n/total
+  ) 
+
+write_csv(concordance_CFT, file = "summarised data/concordance CFT.csv")
+
+
+# comparison of phenotypic MIC between TAX and CFT
+
+concordance_3GC <- non_concordant |>
+  filter(!AST_concordant_3GC %in% "NA") |>
+  group_by(AST_concordant_3GC) |>
+  tally() |>
+  mutate(
+    total = sum(n),
+    proportion = n/total
+  ) 
+
+write_csv(concordance_3GC, file = "summarised data/concordance 3GC.csv")
 
 
 
