@@ -11,20 +11,28 @@ library(ggnewscale)
 library(ggpattern)
 
 filter <- dplyr::filter
+rename <- dplyr::rename
+summarise <- dplyr::summarise
 
 # set working directory
 setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/")
 
 #-------------------------------------------- read in files -------------------------------------------
 
-# read in metadata
-metadata <- read.csv(file = "monocle-metadata - Copy.csv", na.strings = c("","NA"))
+# monocle metadata
+full_metadata <- read_csv(file = "monocle-metadata-all-columns.csv")
 
-# read in unpublished cambodia metadata
+# australian isolates
+australia <- read_csv(file = "australia.csv")
+
+# read in unpublished cambodian metadata
 cambodia <- read.csv(file = "cambodia.csv", na.strings = c("","NA"))
 
 cambodia <- cambodia |>
   filter(Published %in% "N")
+
+# rbind Monocle data, australian and unpublished cambodian metadata
+metadata <- rbind.fill(full_metadata, australia, cambodia)
 
 # tidy antibiotics for plotting
 antibiotic_tidying <- read.csv(file = "antibiotic.csv")
@@ -37,9 +45,6 @@ serotype_colours <- read_csv(file = "serotype_colours.csv")
 
 
 #----------------------------------------- metadata cleanup -----------------------------------------
-
-# join up metadata with unpublished cambodia data
-metadata <- rbind(metadata, cambodia)
 
 # fill in missing continent data
 metadata$Continent <- ifelse(metadata$Country %in% "NIGERIA" & is.na(metadata$Continent), "AFRICA",
@@ -208,28 +213,28 @@ vaccine_table <- read_csv(file = "vaccine_chart.csv")
 vaccine_table$value <- 1
 
 # reorder factors
-vaccine_table$vaccine <- factor(vaccine_table$vaccine, levels = c("PCV31",
-                                                                  "PCV25",
+vaccine_table$vaccine <- factor(vaccine_table$vaccine, levels = c("PCV31_VAXCYTE",
+                                                                  "PCV25_IVT",
                                                                   "PCV24_GSK",
                                                                   "PCV21_SK_SANOFI",
-                                                                  "PCV20", 
-                                                                  "PCV15",
-                                                                  "PCV13",
+                                                                  "PCV20_PFIZER", 
+                                                                  "PCV15_MERCK",
+                                                                  "PCV13_PFIZER",
                                                                   "PCV10_PNEUMOSIL",
                                                                   "PCV10_GSK",
-                                                                  "PCV7"))
+                                                                  "PCV7_PFIZER"))
 
 # labels
-vaccine_labels <- c("PCV31",
-                    "PCV25",
+vaccine_labels <- c("PCV31 (Vaxcyte)",
+                    "PCV25 (Inventprise)",
                     "PCV24 (GSK)",
                     "PCV21 (SK/SANOFI)",
-                    "PCV20", 
-                    "PCV15",
-                    "PCV13",
+                    "PCV20 (Pfizer)", 
+                    "PCV15 (Merck)",
+                    "PCV13 (Pfizer)",
                     "PCV10 (PNEUMOSIL)",
                     "PCV10 (GSK)",
-                    "PCV7")
+                    "PCV7 (Pfizer)")
 
 # vaccine reference table
 vaccine_table |>
@@ -248,7 +253,7 @@ vaccine_table |>
   )
 
 pcv7 <- vaccine_table |>
-  filter(vaccine %in% "PCV7")
+  filter(vaccine %in% "PCV7_PFIZER")
 
 pcv7_serotypes <- pcv7$serotype
 
@@ -258,14 +263,19 @@ pcv10 <- vaccine_table |>
 pcv10_serotypes <- pcv10$serotype
 
 pcv13 <- vaccine_table |>
-  filter(vaccine %in% "PCV13")
+  filter(vaccine %in% "PCV13_PFIZER")
 
 pcv13_serotypes <- pcv13$serotype
 
 pcv20 <- vaccine_table |>
-  filter(vaccine %in% "PCV20")
+  filter(vaccine %in% "PCV20_PFIZER")
 
 pcv20_serotypes <- pcv20$serotype
+
+PCV25 <- vaccine_table |>
+  filter(vaccine %in% "PCV25_IVT")
+
+pcv25_serotypes <- PCV25$serotype
 
 
 #----------------------------------------- gpsc/serotype plot -----------------------------------------
@@ -396,7 +406,7 @@ antibiotic_join <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_CLI_SIR", "WG
 
 antibiotic_diverse_serotype <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_TET_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "MDR")
 
-Continent <- c("AFRICA", "NORTH AMERICA", "LATIN AMERICA", "EUROPE", "ASIA", "OCEANIA")
+Continent <- c("AFRICA", "NORTH AMERICA", "SOUTH AMERICA", "EUROPE", "ASIA", "OCEANIA")
 
 period <- c("PREPCV13", "POSTPCV13")
 
@@ -1716,7 +1726,6 @@ write_csv(complete_proportion_table, file = complete_proportion_path)
 
 #----------------------------------------- GPSC and serotypes driving resistance pre/post PCV10/13 ----------------
 
-
 # metadata_vaccine_period$vaccine_binom <- factor(metadata_vaccine_period$vaccine_binom, levels = c("PREPCV10", "POSTPCV10"))
 
 serotype_colors_vector <- setNames(metadata$serotype_colour, metadata$serotype_clean)
@@ -1724,7 +1733,7 @@ serotype_colors_vector <- setNames(metadata$serotype_colour, metadata$serotype_c
 
 # obtain list of countries with 5 or more pre and post pcv10 isolates
 continent_country_period <- metadata |>
-  group_by(Continent, Country, vaccine_binom) |>
+  group_by(Continent, Country, GPSC, vaccine_binom) |>
   tally() |>
   filter(n > 10)
 
@@ -1737,78 +1746,120 @@ continent_country_period_vaccine <- continent_country_period |>
 # obtain list of countries
 vaccine_country_list <- continent_country_period_vaccine$Country
 
+metadata |>
+  filter(Country %in% "South Africa") |>
+  group_by(GPSC, vaccine_binom) |>
+  tally() |>
+  pivot_wider(names_from = vaccine_binom, values_from = n) |>
+  filter(PREPCV13 > 10 & POSTPCV13 > 10 & !GPSC %in% "unknown") |>
+  mutate(
+    total = rowSums(across(where(is.numeric)))
+  ) |>
+  ungroup() |>
+  arrange(desc(total)) |>
+  slice_head(n = 15) |>
+  view()
 
 
+country_list <- c("Malawi", "South Africa", "The Gambia", "Cambodia", "China", "Israel", 
+                  "Taiwan", "Denmark", "France", "Ireland", "Norway", "Spain", 
+                  "United Kingdom", "Argentina", "United States")
 
 # test for EU
 
 # obtain list of gpsc in this continent with 10 or more isolates pre and post pcv10
-gpsc_period_vaccine <- metadata_vaccine_period |>
-  filter(Country %in% vaccine_country_list & Continent %in% "EUROPE") |>
-  group_by(GPSC, vaccine_binom) |>
-  tally() |>
-  pivot_wider(names_from = vaccine_binom, values_from = n) |>
-  filter(PREPCV13 > 10 & POSTPCV13 > 10 & !GPSC %in% "unknown")
+#gpsc_period_vaccine <- metadata_vaccine_period |>
+#  filter(Country %in% "South Africa") |>
+#  group_by(GPSC, vaccine_binom) |>
+#  tally() |>
+#  pivot_wider(names_from = vaccine_binom, values_from = n) |>
+#  filter(PREPCV13 > 10 & POSTPCV13 > 10 & !GPSC %in% "unknown") |>
+#  view()
 
-vaccine_gpsc_list <- gpsc_period_vaccine$GPSC
+#vaccine_gpsc_list <- gpsc_period_vaccine$GPSC
 
-vaccine_gpsc_list_num <- sort(as.numeric(vaccine_gpsc_list))
-
-
-eu_gpsc <- metadata_vaccine_period |>
-  filter(Continent %in% "EUROPE" & Country %in% vaccine_country_list & GPSC %in% vaccine_gpsc_list) |>
-  group_by(vaccine_binom, GPSC, serotype_clean) |>
-  tally()
+#vaccine_gpsc_list_num <- sort(as.numeric(vaccine_gpsc_list))
 
 
-eu_gpsc_vector <- unique(sort(as.numeric(eu_gpsc$GPSC)))
+#eu_gpsc <- metadata_vaccine_period |>
+#  filter(Continent %in% "EUROPE" & Country %in% vaccine_country_list & GPSC %in% vaccine_gpsc_list) |>
+#  group_by(vaccine_binom, GPSC, serotype_clean) |>
+#  tally()
 
 
-eu_gpsc |>
-  ggplot(aes(x = vaccine_binom, y = n, fill = serotype_clean, group = GPSC)) +
-  geom_col(position = position_fill(), colour = "black") +
-  facet_grid(~factor(GPSC, levels = eu_gpsc_vector), space="free_x", switch='x') +
-  scale_y_continuous(expand = c(0,0)) +
-  scale_colour_manual(values = "black") +
-  scale_fill_manual(name = "Serotype",
-                    values = serotype_colors_vector,
-                    guide = guide_legend(ncol = 3)) +
-  theme(title = element_text(size = 20),
-        axis.title=element_text(size=18,face="bold"),
-        axis.ticks.x = element_blank(),
-        axis.text.x =element_text(size=10,color="black", angle = 90, hjust=1, vjust=0.2, face = "bold"),
-        axis.text.y = element_text(size = 12),
-        strip.placement='outside',
-        strip.background.x=element_blank(),
-        strip.text=element_text(size=12,color="black",face="bold"),
-        panel.spacing.x=unit(1,"pt"),
-        panel.grid = element_blank(),
-        panel.border = element_blank(),
-        legend.title = element_text(size = 16),
-        legend.text = element_text(size = 14),
-        legend.key.size = unit(0.8, "cm"),
-        plot.margin = margin(15, 0, 0, 0)) +
-  labs(
-    y = "Number of isolates",
-    title = paste("Serotype distribution of GPSCs Europe pre- and post-PCV10", sep = " "),
-    x = "GPSC"
-  )
+#eu_gpsc_vector <- unique(sort(as.numeric(eu_gpsc$GPSC)))
 
 
+#eu_gpsc |>
+#  ggplot(aes(x = vaccine_binom, y = n, fill = serotype_clean, group = GPSC)) +
+#  geom_col(position = position_fill(), colour = "black") +
+#  facet_grid(~factor(GPSC, levels = eu_gpsc_vector), space="free_x", switch='x') +
+#  scale_y_continuous(expand = c(0,0)) +
+#  scale_colour_manual(values = "black") +
+#  scale_fill_manual(name = "Serotype",
+#                    values = serotype_colors_vector,
+#                    guide = guide_legend(ncol = 3)) +
+#  theme(title = element_text(size = 20),
+#        axis.title=element_text(size=18,face="bold"),
+#        axis.ticks.x = element_blank(),
+#        axis.text.x =element_text(size=10,color="black", angle = 90, hjust=1, vjust=0.2, face = "bold"),
+#        axis.text.y = element_text(size = 12),
+#        strip.placement='outside',
+#        strip.background.x=element_blank(),
+#        strip.text=element_text(size=12,color="black",face="bold"),
+#        panel.spacing.x=unit(1,"pt"),
+#        panel.grid = element_blank(),
+#        panel.border = element_blank(),
+#        legend.title = element_text(size = 16),
+#        legend.text = element_text(size = 14),
+#        legend.key.size = unit(0.8, "cm"),
+#        plot.margin = margin(15, 0, 0, 0)) +
+#  labs(
+#    y = "Number of isolates",
+#    title = paste("Serotype distribution of GPSCs Europe pre- and post-PCV10", sep = " "),
+#    x = "GPSC"
+#  )
 
-forloop_output_pre <- data.frame()
-forloop_output_post <- data.frame()
-forloop_output <- data.frame()
-reference <- data.frame()
 
-for (t in antibiotic) {
+dir.create(path = "figures/change in GPSC drivers")
   
+
+for(i in country_list){
+  
+  forloop_output_pre <- data.frame()
+  forloop_output_post <- data.frame()
+  forloop_output <- data.frame()
+  reference <- data.frame()
+  
+  country_gpsc <- metadata |>
+    filter(Country %in% i) |>
+    group_by(GPSC, vaccine_binom) |>
+    tally() |>
+    pivot_wider(names_from = vaccine_binom, values_from = n) |>
+    filter(PREPCV13 > 10 & POSTPCV13 > 10 & !GPSC %in% "unknown") |>
+    mutate(
+      total = rowSums(across(where(is.numeric)))
+    ) |>
+    ungroup() |>
+    arrange(desc(total)) |>
+    slice_head(n = 15)
+  
+  country_gpsc_vector <- unique(sort(as.numeric(country_gpsc$GPSC)))
+  
+  for (t in antibiotic) {
+  
+    
   # create SIR table for GPSCs pre-PCV10
-  antibiotic_tile_pre <- metadata_vaccine_period |>
-    filter(Continent %in% "EUROPE" & Country %in% vaccine_country_list & GPSC %in% vaccine_gpsc_list & vaccine_binom %in% "PREPCV13") |>
+  antibiotic_tile_pre <- metadata |>
+    filter(Country %in% i & GPSC %in% country_gpsc_vector & vaccine_binom %in% "PREPCV13" & !!sym((t)) %in% c("S", "I", "R")) |>
     group_by(GPSC, !!sym((t))) |>
     tally() |>
     pivot_wider(names_from = !!sym((t)), values_from = n)
+  
+  antibiotic_tile_pre <- antibiotic_tile_pre |>
+    mutate(
+      R = ifelse("R" %in% names(antibiotic_tile_pre), R, NA)
+    )
   
   # set NAs to 0
   antibiotic_tile_pre[is.na(antibiotic_tile_pre)] <- 0
@@ -1838,11 +1889,17 @@ for (t in antibiotic) {
   
   
   # create SIR table for GPSCs pre-PCV10
-  antibiotic_tile_post <- metadata_vaccine_period |>
-    filter(Continent %in% "EUROPE" & Country %in% vaccine_country_list & GPSC %in% vaccine_gpsc_list & vaccine_binom %in% "POSTPCV13") |>
+  antibiotic_tile_post <- metadata |>
+    filter(Country %in% i & GPSC %in% country_gpsc_vector & vaccine_binom %in% "POSTPCV13" & !!sym((t)) %in% c("S", "I", "R")) |>
     group_by(GPSC, !!sym((t))) |>
     tally() |>
-    pivot_wider(names_from = !!sym((t)), values_from = n)
+    pivot_wider(names_from = !!sym((t)), values_from = n) 
+  
+  antibiotic_tile_post <- antibiotic_tile_post|>
+    mutate(
+      R = ifelse("R" %in% names(antibiotic_tile_post), R, NA)
+    )
+  
   
   # set NAs to 0
   antibiotic_tile_post[is.na(antibiotic_tile_post)] <- 0
@@ -1891,7 +1948,7 @@ for (t in antibiotic) {
   
   reference <- rbind(row_for_dataframe, reference)
   
-}
+  }
 
 
 # change names of antibiotic column and relevel
@@ -1932,12 +1989,13 @@ resistance_reference_change <- forloop_output |>
   select(-antibiotic) |>
   pivot_wider(names_from = GPSC, values_from = proportion_change)
 
+pre_post_reference_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "change in GPSC drivers", paste(i, " change reference.csv", sep = ""), fsep = "/")
 
-
+write_csv(resistance_reference_change, file = pre_post_reference_path)
 
 # tile plot
 pre_post_plot <- forloop_output |>
-  ggplot(aes(x = factor(GPSC, levels = eu_gpsc_vector), y = antibiotic_tidy, fill = proportion_change)) +
+  ggplot(aes(x = factor(GPSC, levels = country_gpsc_vector), y = antibiotic_tidy, fill = proportion_change)) +
   geom_tile(colour = "black") +
   scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0, limits = c(-1,1)) +
   coord_fixed() +
@@ -1948,7 +2006,7 @@ pre_post_plot <- forloop_output |>
     y = "Antibiotic",
     fill = "Proportion \nchange",
     x = "GPSC",
-    title = "Change in prevalence of resistance pre- and post-PCV13 in Europe"
+    title = i
   ) +
   theme(
     title = element_text(size = 20),
@@ -1963,10 +2021,13 @@ pre_post_plot <- forloop_output |>
   )
 
 
-ggsave(pre_post_plot, filename = "sample figures/pre post plot.svg", dpi = 320, width = 36.58, height = 22.91, units = "cm")
+pre_post_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "change in GPSC drivers", paste(i, " change plot.svg", sep = ""), fsep = "/")
 
 
+ggsave(pre_post_plot, filename = pre_post_plot_path, dpi = 320, width = 36.58, height = 22.91, units = "cm")
 
+
+}
 
 
 
@@ -2036,7 +2097,7 @@ write_csv(serotype_coverage_vaccine, file = "coverage reference.csv")
 
 
 vaccine_table_unique_serotypes <- vaccine_table |>
-  filter(!is.na(vaccine_unique) & !vaccine %in% "PCV25") |>
+  filter(!is.na(vaccine_unique) & !vaccine %in% "PCV25_IVT") |>
   select(serotype, vaccine_unique) |>
   rename(
     serotype_clean = serotype
@@ -2050,8 +2111,9 @@ serotype_coverage_vaccine <- left_join(serotype_coverage_df, vaccine_table_uniqu
 serotype_coverage_vaccine_unique <- serotype_coverage_vaccine |>
   mutate(
     unique_serotype = ifelse(is.na(vaccine_unique), "NVT", 
-                             ifelse(vaccine_unique %in% c("PCV7", "PCV10_GSK"), "PCV13" , vaccine_unique)),
-    PCV13_vaccine = ifelse(serotype_clean %in% pcv13_serotypes, serotype_clean, "NVT")
+                             ifelse(vaccine_unique %in% c("PCV7_PFIZER", "PCV10_GSK"), "PCV13_PFIZER" , vaccine_unique)),
+    PCV13_vaccine = ifelse(serotype_clean %in% pcv13_serotypes, serotype_clean, "NVT"),
+    PCV25_vaccine = ifelse(serotype_clean %in% pcv25_serotypes, "PCV25", "NVT")
   )
 
 serotype_coverage_vaccine_unique_clean <- left_join(serotype_coverage_vaccine_unique, antibiotic_tidying, by = "antibiotic")
@@ -2100,7 +2162,7 @@ pcv13_coverage_figure <- serotype_coverage_vaccine_unique_clean_coloured |>
   ggplot(aes(x = antibiotic_tidy, y = n, fill = PCV13_vaccine, colour = PCV13_vaccine)) +
   geom_bar(position = position_stack(), stat = "identity") +
   facet_wrap(~Continent, ncol = 3, scales = "free_y")+
-  scale_fill_manual(name = "PCV13 \nserotypes",
+  scale_fill_manual(name = "PCV13 (Pfizer) \nserotypes",
                     values = PCV13_colors_vector) +
   scale_colour_manual(values = PCV13_colors_vector,
                       guide = "none") +
@@ -2124,7 +2186,7 @@ pcv13_coverage_figure <- serotype_coverage_vaccine_unique_clean_coloured |>
 ggsave(pcv13_coverage_figure, file = "sample figures/vaccine coverage figure post pcv13.svg", dpi = 320, width = 48, height = 36, units = "cm")
 
 serotype_coverage_vaccine_unique_clean_coloured$unique_serotype <- factor(serotype_coverage_vaccine_unique_clean_coloured$unique_serotype,
-                                                                             levels = c("NVT", "PCV31", "PCV24_GSK", "PCV21_SK_SANOFI", "PCV20", "PCV15", "PCV13"))
+                                                                             levels = c("NVT", "PCV31_VAXCYTE", "PCV24_GSK", "PCV21_SK_SANOFI", "PCV20_PFIZER", "PCV15_MERCK", "PCV13_PFIZER"))
 
 potential_coverage_plot <- serotype_coverage_vaccine_unique_clean_coloured |>
   ggplot(aes(x = antibiotic_tidy, y = n, fill = unique_serotype, colour = unique_serotype)) +
@@ -2132,7 +2194,7 @@ potential_coverage_plot <- serotype_coverage_vaccine_unique_clean_coloured |>
   facet_wrap(~Continent, ncol = 3, scales = "free_y")+
   scale_fill_manual(name = "Vaccine \nserotypes",
                     values = vaccine_colors_vector,
-                    labels = c("NVT", "PCV31", "PCV24 (GSK)", "PCV21 (SK/Sanofi)", "PCV20", "PCV15", "PCV13")) +
+                    labels = c("NVT", "PCV31 (Vaxcyte)", "PCV24 (GSK)", "PCV21 (SK/Sanofi)", "PCV20 (Pfizer)", "PCV15 (Merck)", "PCV13 (Pfizer)")) +
   scale_colour_manual(values = vaccine_colors_vector,
                       guide = "none") +
   labs(
@@ -2156,7 +2218,36 @@ ggsave(potential_coverage_plot, file = "sample figures/potential coverage figure
 
 ### separate figure for PCV25
 
+pcv25_potential_coverage_plot <- serotype_coverage_vaccine_unique_clean_coloured |>
+  mutate(
+    PCV25_colour = ifelse(PCV25_vaccine %in% "NVT", "#808080", "#5D3A9B")
+  ) |>
+  ggplot(aes(x = antibiotic_tidy, y = n, fill = PCV25_vaccine, colour = PCV25_vaccine)) +
+  geom_bar(position = position_stack(), stat = "identity") +
+  facet_wrap(~Continent, ncol = 3, scales = "free_y") +
+  scale_fill_manual(name = "Vaccine \nserotypes",
+                    values = c("#808080", "#5D3A9B"),
+                    labels = c("NVT", "PCV25 (Inventprise)")) +
+  scale_colour_manual(values = c("#808080", "#5D3A9B"),
+                      guide = "none") +
+  labs(
+    x = "Antibiotic",
+    y = "Number of isolates",
+    title = "Potential vaccine coverage of AMR isolates post-PCV13 implementation in each continent"
+  ) +
+  theme(
+    title = element_text(size = 24),
+    axis.text.x = element_text(size = 18, angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 18),
+    axis.title = element_text(size = 22), 
+    legend.title = element_text(size = 22),
+    legend.text = element_text(size = 14),
+    legend.key.size = unit(0.8, "cm"),
+    strip.text = element_text(size = 16),
+    legend.background = element_blank()
+  )
 
+ggsave(pcv25_potential_coverage_plot, file = "sample figures/pcv25 potential coverage figure.svg", dpi = 320, width = 48, height = 36, units = "cm")
 
 
 ### potential coverage table
@@ -2164,7 +2255,7 @@ ggsave(potential_coverage_plot, file = "sample figures/potential coverage figure
 coverage_table <- data.frame()
 
 
-cols <- c("PCV31", "PCV24_GSK", "PCV21_SK_SANOFI", "PCV20", "PCV15") |>
+cols <- c("PCV31_VAXCYTE", "PCV24_GSK", "PCV21_SK_SANOFI", "PCV20_PFIZER", "PCV15_MERCK", "PCV13_PFIZER") |>
   map_dfr( ~tibble(!!.x := logical() ) )
 
 for(i in Continent){
@@ -2185,16 +2276,19 @@ coverage_raw <- bind_rows(coverage_raw, cols)
 
 coverage_raw[is.na(coverage_raw)] <- 0
 
+coverage_raw <- coverage_raw |>
+  relocate(PCV21_SK_SANOFI, .after = NVT) |>
+  relocate(PCV24_GSK, .after = PCV21_SK_SANOFI)
 
 coverage_clean <- coverage_raw |>
   mutate(
-    total = rowSums(across(where(is.numeric))),
-    pcv13_percentage = paste(round(100 * PCV13/total, 2), "%"),
-    pcv13_clean = paste0(pcv13_percentage, " (", PCV13, ")"),
-    total_pcv15 = PCV13 + PCV15,
+    total = rowSums(coverage_raw[,2:8]),
+    pcv13_percentage = paste(round(100 * PCV13_PFIZER/total, 2), "%"),
+    pcv13_clean = paste0(pcv13_percentage, " (", PCV13_PFIZER, ")"),
+    total_pcv15 = PCV13_PFIZER + PCV15_MERCK,
     pcv15_percentage = paste(round(100 * total_pcv15/total, 2), "%"),
     pcv15_clean = paste0(pcv15_percentage, " (", total_pcv15, ")"), 
-    total_pcv20 = total_pcv15 + PCV20,
+    total_pcv20 = total_pcv15 + PCV20_PFIZER,
     pcv20_percentage = paste(round(100 * total_pcv20/total, 2), "%"),
     pcv20_clean = paste0(pcv20_percentage, " (", total_pcv20, ")"),
     total_pcv21 = total_pcv20 + PCV21_SK_SANOFI,
@@ -2203,7 +2297,7 @@ coverage_clean <- coverage_raw |>
     total_pcv24 = total_pcv21 + PCV24_GSK,
     pcv24_percentage = paste(round(100 * total_pcv24/total, 2), "%"),
     pcv24_clean = paste0(pcv24_percentage, " (", total_pcv24, ")"),
-    total_pcv31 = total_pcv24 + PCV31,
+    total_pcv31 = total_pcv24 + PCV31_VAXCYTE,
     pcv31_percentage = paste(round(100 * total_pcv31/total, 2), "%"),
     pcv31_clean = paste0(pcv31_percentage, " (", total_pcv31, ")"),
   ) |>
@@ -2213,26 +2307,57 @@ coverage_table <- rbind(coverage_clean, coverage_table)
 }
 
 
-colnames(coverage_table) <- c("Continent", "Antibiotic", "PCV13", "PCV15", "PCV20", "PCV21 (SK/Sanofi)", "PCV24 (GSK)", "PCV31", "Total")
+colnames(coverage_table) <- c("Continent", "Antibiotic", "PCV13 (Pfizer)", "PCV15 (Merck)", "PCV20 (Pfizer)", "PCV21 (SK/Sanofi)", "PCV24 (GSK)", "PCV31 (Vaxcyte)", "Total")
 
 
 write_csv(coverage_table, file = "sample figures/coverage table.csv")
 
 
+cols_pcv25 <- c("PCV25") |>
+  map_dfr( ~tibble(!!.x := logical() ) )
 
+coverage_table_pcv25 <- data.frame()
 
+for(i in Continent){
+  coverage_raw_pcv25 <- serotype_coverage_vaccine_unique_clean |>
+    filter(Continent %in% i) |>
+    select(-Continent) |>
+    group_by(antibiotic_tidy, PCV25_vaccine) |>
+    summarise(
+      n = sum(n)
+    ) |>
+    pivot_wider(names_from = PCV25_vaccine, values_from = n) |>
+    mutate(
+      continent = i
+    ) 
+  
+  coverage_raw_pcv25 <- bind_rows(coverage_raw_pcv25, cols_pcv25)
+  
+  
+  coverage_raw_pcv25[is.na(coverage_raw_pcv25)] <- 0
+  
+  
+  coverage_clean_pcv25 <- coverage_raw_pcv25 |>
+    mutate(
+      total = rowSums(coverage_raw_pcv25[,2:3]),
+      pcv25_percentage = paste(round(100 * PCV25/total, 2), "%"),
+      pcv25_clean = paste0(pcv25_percentage, " (", PCV25, ")")
+    ) |>
+    select(continent, antibiotic_tidy, pcv25_clean, total)
+  
+  coverage_table_pcv25 <- rbind(coverage_clean_pcv25, coverage_table_pcv25)
+}
+
+colnames(coverage_table_pcv25) <- c("Continent", "Antibiotic", "PCV25 (Inventprise)", "Total")
+
+write_csv(coverage_table_pcv25, file = "sample figures/coverage table pcv25.csv")
 
 #------------------------------------ beta-lactam analysis and concordance between 3rd gen cephalosporins -------------------------------------
 
-full_metadata <- read_csv(file = "monocle-metadata-all-columns.csv")
-
-australia <- read_csv(file = "australia.csv")
-
-complete_metadata <- rbind.fill(full_metadata, australia, cambodia)
 
 # filter for isolates that are PEN susceptible but intermediate or resistant for other beta lactams
 # all abnormal isolates are intermediate for CFX
-abnormal_resistance <- complete_metadata |>
+abnormal_resistance <- metadata |>
   select(1:13, AST_method_Cefuroxime, Cefuroxime, WGS_CFX, WGS_CFX_SIR, AST_method_Penicillin, Penicillin, WGS_PEN, WGS_PEN_SIR_Meningitis) |>
   filter(WGS_PEN_SIR_Meningitis %in% "S" & !WGS_CFX_SIR %in% "S") |>
   mutate(
@@ -2247,7 +2372,7 @@ abnormal_resistance <- complete_metadata |>
 write_csv(abnormal_resistance, file = "summarised data/abnormal resistance.csv")
 
 # concordance between 3rd gen cephalosporins
-non_concordant <- complete_metadata |>
+non_concordant <- metadata |>
   filter(WGS_CFT_SIR_Meningitis != WGS_TAX_SIR_Meningitis) |>
   select(1:13, AST_method_Cefotaxime, Cefotaxime, WGS_TAX, WGS_TAX_SIR_Meningitis, AST_method_Ceftriaxone, Ceftriaxone, WGS_CFT, WGS_CFT_SIR_Meningitis) |>
   mutate(
