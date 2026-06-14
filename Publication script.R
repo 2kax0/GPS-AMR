@@ -32,7 +32,11 @@ cambodia <- cambodia |>
   filter(Published %in% "N")
 
 # rbind Monocle data, australian and unpublished cambodian metadata
+library(plyr)
+
 metadata <- rbind.fill(full_metadata, australia, cambodia)
+
+detach("package:plyr", unload = TRUE)
 
 # tidy antibiotics for plotting
 antibiotic_tidying <- read.csv(file = "antibiotic.csv")
@@ -433,7 +437,7 @@ for(p in period){
   tidy_dataset <- metadata_period |> filter(!!((sym(i))) %in% c("S", "I", "R"))
   
   ### create new directory for each looped variable
-  newdir <- paste0(i, " plots ", p)
+  newdir <- paste0(maindir,"/", i, " plots ", p)
 
   dir.create(newdir)
   
@@ -466,7 +470,7 @@ for(p in period){
   join <- left_join(age_tally, total_tally, by = "Age_category")
   
   ### define path to save csv
-  age_manifest_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/age manifest table.csv", sep = ""), fsep = "/")
+  age_manifest_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/age manifest table.csv", sep = ""), fsep = "/")
   
   ### csv file for number of resistant isolates in each age group for each disease manifestation
   write_csv(join, file = age_manifest_path)
@@ -523,6 +527,11 @@ for(p in period){
       tally() |>
       pivot_wider(names_from = !!((sym(i))), values_from = n)
     
+    pivot_SIR <- pivot_SIR |>
+      mutate(
+        R = ifelse("R" %in% names(pivot_SIR), R, NA)
+      )
+    
     pivot_SIR[is.na(pivot_SIR)] = 0
     
     pivot_plot <- pivot_SIR |>
@@ -530,7 +539,7 @@ for(p in period){
         Longitude = as.numeric(case_when(
           Continent == "AFRICA" ~ 21.890909,
           Continent == "NORTH AMERICA" ~ -100.538118,
-          Continent == "LATIN AMERICA" ~ -53.604523,
+          Continent == "SOUTH AMERICA" ~ -53.604523,
           Continent == "EUROPE" ~ 15.738565,
           Continent == "ASIA" ~ 110.308879,
           Continent == "OCEANIA" ~ 150.562787
@@ -538,7 +547,7 @@ for(p in period){
         Latitude = as.numeric(case_when(
           Continent == "AFRICA" ~ 6.208920,
           Continent == "NORTH AMERICA" ~ 49.249542,
-          Continent == "LATIN AMERICA" ~ -12.581874,
+          Continent == "SOUTH AMERICA" ~ -12.581874,
           Continent == "EUROPE" ~ 50.890969,
           Continent == "ASIA" ~ 41.691447,
           Continent == "OCEANIA" ~ -28.553076
@@ -556,6 +565,11 @@ for(p in period){
       tally() |>
       pivot_wider(names_from = !!((sym(i))), values_from = n)
     
+    pivot_SIR <- pivot_SIR |>
+      mutate(
+        R = ifelse("R" %in% names(pivot_SIR), R, NA)
+      )
+    
     pivot_SIR[is.na(pivot_SIR)] = 0
     
     pivot_plot <- pivot_SIR |>
@@ -563,7 +577,7 @@ for(p in period){
         Longitude = as.numeric(case_when(
           Continent == "AFRICA" ~ 21.890909,
           Continent == "NORTH AMERICA" ~ -100.538118,
-          Continent == "LATIN AMERICA" ~ -53.604523,
+          Continent == "SOUTH AMERICA" ~ -53.604523,
           Continent == "EUROPE" ~ 15.738565,
           Continent == "ASIA" ~ 110.308879,
           Continent == "OCEANIA" ~ 150.562787
@@ -571,7 +585,7 @@ for(p in period){
         Latitude = as.numeric(case_when(
           Continent == "AFRICA" ~ 6.208920,
           Continent == "NORTH AMERICA" ~ 49.249542,
-          Continent == "LATIN AMERICA" ~ -12.581874,
+          Continent == "SOUTH AMERICA" ~ -12.581874,
           Continent == "EUROPE" ~ 50.890969,
           Continent == "ASIA" ~ 41.691447,
           Continent == "OCEANIA" ~ -28.553076
@@ -628,7 +642,7 @@ for(p in period){
       plot.margin = margin(-20, 0, 0, 10)
     ) 
   
-  SIR_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/SIR table.csv", sep = ""), fsep = "/")
+  SIR_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/SIR table.csv", sep = ""), fsep = "/")
   write_csv(pivot_plot, file = SIR_path)
   
   map_manifest <- ggarrange(plot, age_manifest, widths = c(1.5, 1.25), heights = c(1, 1), labels = c("(a)", "(b)"), label.y = 1.01, font.label=list(color="black",size=12), hjust = c(0.5,0,0)) +
@@ -816,18 +830,18 @@ for(p in period){
   
   
   
-  full_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/full plot.svg", sep = ""), fsep = "/")
+  full_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/full plot.svg", sep = ""), fsep = "/")
   
   ggsave(full_plot, filename = full_plot_path, dpi = 320, width = 26.58, height = 16.91, units = "cm")
 
   
   # forest plots
   
-  newdir <- paste0(i, " forest plot ", p)
+  newdir <- paste0(maindir,"/", i, " forest plot ", p)
   
   dir.create(newdir)
   
-  napath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/na forest.svg", sep = ""), fsep = "/")
+  napath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/na forest.svg", sep = ""), fsep = "/")
   
   complete <- tidy_dataset |> filter(!!((sym(i))) %in% c("S", "I", "R"))
   
@@ -856,28 +870,28 @@ for(p in period){
   dev.off()
   
   
-  #latin america
-  LatinAmerica <- complete |>
-    filter(Continent %in% "LATIN AMERICA") |>
+  #South america
+  SouthAmerica <- complete |>
+    filter(Continent %in% "SOUTH AMERICA") |>
     group_by(Country, !!sym((i))) |>
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  lapath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/la forest.svg", sep = ""), fsep = "/")
+  lapath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/la forest.svg", sep = ""), fsep = "/")
   
-  if(!"R" %in% names(LatinAmerica)) {LatinAmerica$R <- 0
-  LatinAmerica$total <- rowSums(LatinAmerica[, !colnames(LatinAmerica) %in% "Country"], na.rm = TRUE)
-  LatinAmerica[is.na(LatinAmerica)] <- 0
-  lameta <- metaprop(R, total, data = LatinAmerica)
+  if(!"R" %in% names(SouthAmerica)) {SouthAmerica$R <- 0
+  SouthAmerica$total <- rowSums(SouthAmerica[, !colnames(SouthAmerica) %in% "Country"], na.rm = TRUE)
+  SouthAmerica[is.na(SouthAmerica)] <- 0
+  lameta <- metaprop(R, total, data = SouthAmerica)
   }
   
-  else LatinAmerica$total <- rowSums(LatinAmerica[, !colnames(LatinAmerica) %in% "Country"], na.rm = TRUE)
-  LatinAmerica[is.na(LatinAmerica)] <- 0
-  lameta <- metaprop(R, total, data = LatinAmerica)
+  else SouthAmerica$total <- rowSums(SouthAmerica[, !colnames(SouthAmerica) %in% "Country"], na.rm = TRUE)
+  SouthAmerica[is.na(SouthAmerica)] <- 0
+  lameta <- metaprop(R, total, data = SouthAmerica)
   
   svg(file = lapath, width = 11, height = 3)
   forest(lameta, comb.fixed = lameta$comb.fixed, comb.random = lameta$comb.random, 
-         overall = TRUE, studlab = LatinAmerica$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+         overall = TRUE, studlab = SouthAmerica$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
   dev.off()
   
   #europe
@@ -887,7 +901,7 @@ for(p in period){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  eupath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/eu forest.svg", sep = ""), fsep = "/")
+  eupath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/eu forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Europe)){Europe$R <- 0
   Europe$total <- rowSums(Europe[, !colnames(Europe) %in% "Country"], na.rm = TRUE)
@@ -911,7 +925,7 @@ for(p in period){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  aspath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/as forest.svg", sep = ""), fsep = "/")
+  aspath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/as forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Asia)){Asia$R <- 0
   Asia$total <- rowSums(Asia[, !colnames(Asia) %in% "Country"], na.rm = TRUE)
@@ -935,7 +949,7 @@ for(p in period){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  afpath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/af forest.svg", sep = ""), fsep = "/")
+  afpath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/af forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Africa)){Africa$R <- 0
   Africa$total <- rowSums(Africa[, !colnames(Africa) %in% "Country"], na.rm = TRUE)
@@ -959,7 +973,7 @@ for(p in period){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  ocepath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/oce forest.svg", sep = ""), fsep = "/")
+  ocepath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/oce forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Oceania)){Oceania$R <- 0
   Oceania$total <- rowSums(Oceania[, !colnames(Oceania) %in% "Country"], na.rm = TRUE)
@@ -979,7 +993,7 @@ for(p in period){
   
   ### overview table of proportion resistance in each continent
   
-  df_name <- paste(i, "_proportion_", sep = "")
+  df_name <- paste(i, "_proportion", sep = "")
   
   # back conversion of proportion values and CI for each continent
   random_est_na <- c(nameta$TE.random, nameta$lower.random, nameta$upper.random)
@@ -1015,7 +1029,7 @@ for(p in period){
   proportion_table <- proportion_table |>
     mutate(
       Continent = c("North America", "Europe", "Africa",
-                    "Latin America", "Asia", "Oceania")) |>
+                    "South America", "Asia", "Oceania")) |>
     relocate(Continent) |>
     head()
   
@@ -1023,7 +1037,7 @@ for(p in period){
   colnames(proportion_table) <- c("Continent", "Proportion", "Lower", "Upper")
   
   # save proportion table for each antibiotic into their respective folder
-  proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir, "/proportion.csv", sep = ""), fsep = "/")
+  proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/proportion.csv", sep = ""), fsep = "/")
   write_csv(proportion_table, file = proportion_path)
   
   # round to 2 significant figures
@@ -1045,7 +1059,7 @@ for(p in period){
   
   }
 
-  newdir <- paste0("complete proportion ",p)
+  newdir <- paste0(maindir,"/complete proportion ",p)
   
   dir.create(newdir)
   
@@ -1065,7 +1079,7 @@ for(p in period){
                                            "Tetracycline", "Co-trimoxazole", "Rifampin", "Kanamycin", "MDR")
   
   # save proportion table for each antibiotic into their respective folder
-  complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(maindir, "/", newdir,"/complete proportion.csv", sep = ""), fsep = "/")
+  complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir,"/complete proportion.csv", sep = ""), fsep = "/")
   
   write_csv(complete_proportion_table, file = complete_proportion_path)
   
@@ -1085,7 +1099,7 @@ for(i in antibiotic){
   tidy_dataset <- metadata |> filter(!!((sym(i))) %in% c("S", "I", "R"))
   
   ### create new directory for each looped variable
-  newdir <- paste0(i, " plots")
+  newdir <- paste0("pooled plots/", i, " plots")
   
   dir.create(newdir)
   
@@ -1118,7 +1132,7 @@ for(i in antibiotic){
   join <- left_join(age_tally, total_tally, by = "Age_category")
   
   ### define path to save csv
-  age_manifest_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/age manifest table.csv", sep = ""), fsep = "/")
+  age_manifest_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/age manifest table.csv", sep = ""), fsep = "/")
   
   ### csv file for number of resistant isolates in each age group for each disease manifestation
   write_csv(join, file = age_manifest_path)
@@ -1175,6 +1189,11 @@ for(i in antibiotic){
       tally() |>
       pivot_wider(names_from = !!((sym(i))), values_from = n)
     
+    pivot_SIR <- pivot_SIR |>
+      mutate(
+        R = ifelse("R" %in% names(pivot_SIR), R, NA)
+      )
+    
     pivot_SIR[is.na(pivot_SIR)] = 0
     
     pivot_plot <- pivot_SIR |>
@@ -1182,7 +1201,7 @@ for(i in antibiotic){
         Longitude = as.numeric(case_when(
           Continent == "AFRICA" ~ 21.890909,
           Continent == "NORTH AMERICA" ~ -100.538118,
-          Continent == "LATIN AMERICA" ~ -53.604523,
+          Continent == "SOUTH AMERICA" ~ -53.604523,
           Continent == "EUROPE" ~ 15.738565,
           Continent == "ASIA" ~ 110.308879,
           Continent == "OCEANIA" ~ 150.562787
@@ -1190,7 +1209,7 @@ for(i in antibiotic){
         Latitude = as.numeric(case_when(
           Continent == "AFRICA" ~ 6.208920,
           Continent == "NORTH AMERICA" ~ 49.249542,
-          Continent == "LATIN AMERICA" ~ -12.581874,
+          Continent == "SOUTH AMERICA" ~ -12.581874,
           Continent == "EUROPE" ~ 50.890969,
           Continent == "ASIA" ~ 41.691447,
           Continent == "OCEANIA" ~ -28.553076
@@ -1208,6 +1227,11 @@ for(i in antibiotic){
       tally() |>
       pivot_wider(names_from = !!((sym(i))), values_from = n)
     
+    pivot_SIR <- pivot_SIR |>
+      mutate(
+        R = ifelse("R" %in% names(pivot_SIR), R, NA)
+      )
+    
     pivot_SIR[is.na(pivot_SIR)] = 0
     
     pivot_plot <- pivot_SIR |>
@@ -1215,7 +1239,7 @@ for(i in antibiotic){
         Longitude = as.numeric(case_when(
           Continent == "AFRICA" ~ 21.890909,
           Continent == "NORTH AMERICA" ~ -100.538118,
-          Continent == "LATIN AMERICA" ~ -53.604523,
+          Continent == "SOUTH AMERICA" ~ -53.604523,
           Continent == "EUROPE" ~ 15.738565,
           Continent == "ASIA" ~ 110.308879,
           Continent == "OCEANIA" ~ 150.562787
@@ -1223,7 +1247,7 @@ for(i in antibiotic){
         Latitude = as.numeric(case_when(
           Continent == "AFRICA" ~ 6.208920,
           Continent == "NORTH AMERICA" ~ 49.249542,
-          Continent == "LATIN AMERICA" ~ -12.581874,
+          Continent == "SOUTH AMERICA" ~ -12.581874,
           Continent == "EUROPE" ~ 50.890969,
           Continent == "ASIA" ~ 41.691447,
           Continent == "OCEANIA" ~ -28.553076
@@ -1280,7 +1304,7 @@ for(i in antibiotic){
       plot.margin = margin(-20, 0, 0, 10)
     ) 
   
-  SIR_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/SIR table.csv", sep = ""), fsep = "/")
+  SIR_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/SIR table.csv", sep = ""), fsep = "/")
   write_csv(pivot_plot, file = SIR_path)
   
   map_manifest <- ggarrange(plot, age_manifest, widths = c(1.5, 1.25), heights = c(1, 1), labels = c("(a)", "(b)"), label.y = 1.01, font.label=list(color="black",size=12), hjust = c(0.5,0,0)) +
@@ -1468,18 +1492,18 @@ for(i in antibiotic){
   
   
   
-  full_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/full plot.svg", sep = ""), fsep = "/")
+  full_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/full plot.svg", sep = ""), fsep = "/")
   
   ggsave(full_plot, filename = full_plot_path, dpi = 320, width = 26.58, height = 16.91, units = "cm")
   
   
   # forest plots
   
-  newdir <- paste0(i, " forest plot")
+  newdir <- paste0("pooled plots/", i, " forest plot")
   
   dir.create(newdir)
   
-  napath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/na forest.svg", sep = ""), fsep = "/")
+  napath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/na forest.svg", sep = ""), fsep = "/")
   
   complete <- tidy_dataset |> filter(!!((sym(i))) %in% c("S", "I", "R"))
   
@@ -1508,28 +1532,28 @@ for(i in antibiotic){
   dev.off()
   
   
-  #latin america
-  LatinAmerica <- complete |>
-    filter(Continent %in% "LATIN AMERICA") |>
+  #South america
+  SouthAmerica <- complete |>
+    filter(Continent %in% "SOUTH AMERICA") |>
     group_by(Country, !!sym((i))) |>
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  lapath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/la forest.svg", sep = ""), fsep = "/")
+  lapath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/la forest.svg", sep = ""), fsep = "/")
   
-  if(!"R" %in% names(LatinAmerica)) {LatinAmerica$R <- 0
-  LatinAmerica$total <- rowSums(LatinAmerica[, !colnames(LatinAmerica) %in% "Country"], na.rm = TRUE)
-  LatinAmerica[is.na(LatinAmerica)] <- 0
-  lameta <- metaprop(R, total, data = LatinAmerica)
+  if(!"R" %in% names(SouthAmerica)) {SouthAmerica$R <- 0
+  SouthAmerica$total <- rowSums(SouthAmerica[, !colnames(SouthAmerica) %in% "Country"], na.rm = TRUE)
+  SouthAmerica[is.na(SouthAmerica)] <- 0
+  lameta <- metaprop(R, total, data = SouthAmerica)
   }
   
-  else LatinAmerica$total <- rowSums(LatinAmerica[, !colnames(LatinAmerica) %in% "Country"], na.rm = TRUE)
-  LatinAmerica[is.na(LatinAmerica)] <- 0
-  lameta <- metaprop(R, total, data = LatinAmerica)
+  else SouthAmerica$total <- rowSums(SouthAmerica[, !colnames(SouthAmerica) %in% "Country"], na.rm = TRUE)
+  SouthAmerica[is.na(SouthAmerica)] <- 0
+  lameta <- metaprop(R, total, data = SouthAmerica)
   
   svg(file = lapath, width = 14.5, height = 3)
   forest(lameta, comb.fixed = lameta$comb.fixed, comb.random = lameta$comb.random, 
-         overall = TRUE, studlab = LatinAmerica$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+         overall = TRUE, studlab = SouthAmerica$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
   dev.off()
   
   #europe
@@ -1539,7 +1563,7 @@ for(i in antibiotic){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  eupath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/eu forest.svg", sep = ""), fsep = "/")
+  eupath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/eu forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Europe)){Europe$R <- 0
   Europe$total <- rowSums(Europe[, !colnames(Europe) %in% "Country"], na.rm = TRUE)
@@ -1563,7 +1587,7 @@ for(i in antibiotic){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  aspath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/as forest.svg", sep = ""), fsep = "/")
+  aspath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/as forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Asia)){Asia$R <- 0
   Asia$total <- rowSums(Asia[, !colnames(Asia) %in% "Country"], na.rm = TRUE)
@@ -1587,7 +1611,7 @@ for(i in antibiotic){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  afpath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/af forest.svg", sep = ""), fsep = "/")
+  afpath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/af forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Africa)){Africa$R <- 0
   Africa$total <- rowSums(Africa[, !colnames(Africa) %in% "Country"], na.rm = TRUE)
@@ -1611,7 +1635,7 @@ for(i in antibiotic){
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  ocepath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/oce forest.svg", sep = ""), fsep = "/")
+  ocepath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/oce forest.svg", sep = ""), fsep = "/")
   
   if(!"R" %in% names(Oceania)){Oceania$R <- 0
   Oceania$total <- rowSums(Oceania[, !colnames(Oceania) %in% "Country"], na.rm = TRUE)
@@ -1667,7 +1691,7 @@ for(i in antibiotic){
   proportion_table <- proportion_table |>
     mutate(
       Continent = c("North America", "Europe", "Africa",
-                    "Latin America", "Asia", "Oceania")) |>
+                    "South America", "Asia", "Oceania")) |>
     relocate(Continent) |>
     head()
   
@@ -1675,7 +1699,7 @@ for(i in antibiotic){
   colnames(proportion_table) <- c("Continent", "Proportion", "Lower", "Upper")
   
   # save proportion table for each antibiotic into their respective folder
-  proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", paste(newdir, "/proportion.csv", sep = ""), fsep = "/")
+  proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/proportion.csv", sep = ""), fsep = "/")
   write_csv(proportion_table, file = proportion_path)
   
   # round to 2 significant figures
