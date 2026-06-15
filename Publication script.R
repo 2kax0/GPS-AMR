@@ -2387,21 +2387,26 @@ abnormal_resistance <- metadata |>
   select(1:13, AST_method_Cefuroxime, Cefuroxime, WGS_CFX, WGS_CFX_SIR, AST_method_Penicillin, Penicillin, WGS_PEN, WGS_PEN_SIR_Meningitis) |>
   filter(WGS_PEN_SIR_Meningitis %in% "S" & !WGS_CFX_SIR %in% "S") |>
   mutate(
+    Cefuroxime_clean = as.numeric(str_remove_all(Cefuroxime, "[< <=<>]")),
     AST_CFX_SIR = ifelse(Cefuroxime <= 0.5, "S",
                          ifelse(Cefuroxime >= 2, "R", "I")),
-    AST_PEN_SIR = ifelse(Penicillin <= 0.12, "S", "R")
+    Penicillin_clean = as.numeric(str_remove_all(Penicillin, "[< <=<>]")),
+    AST_PEN_SIR = ifelse(Penicillin %in% c("S", "R"), Penicillin, # 21 isolates with "I" for AST_Penicillin will be excluded
+                         ifelse(Penicillin_clean <= 0.12, "S", "R"))
   ) |>
+  relocate(Cefuroxime_clean, .after = Cefuroxime) |>
   relocate(AST_CFX_SIR, .after = Cefuroxime) |>
-  relocate(AST_PEN_SIR, .after = Penicillin)
+  relocate(Penicillin_clean, .after = Penicillin) |>
+  relocate(AST_PEN_SIR, .after = Penicillin_clean)
 
 
 write_csv(abnormal_resistance, file = "summarised data/abnormal resistance.csv")
 
-# concordance between 3rd gen cephalosporins
-concordant <- metadata |>
-  filter(WGS_CFT_SIR_Meningitis == WGS_TAX_SIR_Meningitis) |>
+# master datasheet for concordance between 3rd gen cephalosporins
+concordance_master <- metadata |>
   select(1:13, AST_method_Cefotaxime, Cefotaxime, WGS_TAX, WGS_TAX_SIR_Meningitis, AST_method_Ceftriaxone, Ceftriaxone, WGS_CFT, WGS_CFT_SIR_Meningitis) |>
   mutate(
+    WGS_concordant_3GC = ifelse(WGS_TAX_SIR_Meningitis == WGS_CFT_SIR_Meningitis, "T", "F"),
     Cefotaxime_clean = as.numeric(str_remove_all(Cefotaxime, "[< <=<>]")),
     AST_TAX_SIR = ifelse(Cefotaxime_clean >= 2, "R",
                                 ifelse(Cefotaxime_clean <= 0.5 | Cefotaxime %in% "< 0,008", "S", "I")),
@@ -2421,11 +2426,25 @@ concordant <- metadata |>
   relocate(concordant_TAX, .after = WGS_TAX_SIR_Meningitis) |>
   relocate(concordant_CFT, .after = WGS_CFT_SIR_Meningitis)
 
-write_csv(concordant, file = "summarised data/3rd gen cephalosporin concordant.csv")
 
+write_csv(concordance_master, file = "summarised data/master concordant.csv")
+
+
+# concordance in WGS prediction between CFT and TAX
+
+concordance_3gc <- concordance_master |>
+  filter(!is.na(WGS_concordant_3GC)) |>
+  group_by(WGS_concordant_3GC) |>
+  tally() |>
+  mutate(
+    total = sum(n),
+    proportion = n/total
+  ) 
+
+write_csv(concordance_3gc, file = "summarised data/concordance 3GC WGS.csv")
 
 # phenotypic and predicted MIC for TAX
-concordance_TAX <- non_concordant |>
+concordance_TAX <- concordance_master |>
   filter(!is.na(AST_TAX_SIR) & !is.na(WGS_TAX_SIR_Meningitis)) |>
   group_by(concordant_TAX) |>
   tally() |>
@@ -2437,21 +2456,21 @@ concordance_TAX <- non_concordant |>
 write_csv(concordance_TAX, file = "summarised data/concordance TAX.csv")
 
 # phenotypic and predicted MIC for CFT
-concordance_CFT <- non_concordant |>
+concordance_CFT <- concordance_master |>
   filter(!is.na(AST_CFT_SIR) & !is.na(WGS_CFT_SIR_Meningitis)) |>
   group_by(concordant_CFT) |>
   tally() |>
   mutate(
     total = sum(n),
     proportion = n/total
-  ) 
+  )
 
 write_csv(concordance_CFT, file = "summarised data/concordance CFT.csv")
 
 
 # comparison of phenotypic MIC between TAX and CFT
 
-concordance_3GC <- non_concordant |>
+concordance_3GC_phenotype <- concordance_master |>
   filter(!AST_concordant_3GC %in% "NA") |>
   group_by(AST_concordant_3GC) |>
   tally() |>
@@ -2460,7 +2479,7 @@ concordance_3GC <- non_concordant |>
     proportion = n/total
   ) 
 
-write_csv(concordance_3GC, file = "summarised data/concordance 3GC.csv")
+write_csv(concordance_3GC_phenotype, file = "summarised data/concordance 3GC phenotype.csv")
 
 
 
