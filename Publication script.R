@@ -32,6 +32,7 @@ cambodia <- cambodia |>
   filter(Published %in% "N")
 
 # rbind Monocle data, australian and unpublished cambodian metadata
+# requires the use of plyr package but has to unload to prevent conflicts and masking
 library(plyr)
 
 metadata <- rbind.fill(full_metadata, australia, cambodia)
@@ -395,7 +396,7 @@ continent_year_plot <- continent_year_tally |>
 
 continent_year_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summary plots", "continent year plot.svg", fsep = "/")
 
-ggsave(continent_year_plot, filename = continent_year_plot_path, dpi = 320, width =80.58, height = 43, units = "cm")
+ggsave(continent_year_plot, filename = continent_year_plot_path, dpi = 320, width =80.58, height = 46, units = "cm")
 
 #----------------------------------------- panels ----------------------------------------
 
@@ -2021,10 +2022,10 @@ write_csv(resistance_reference_change, file = pre_post_reference_path)
 pre_post_plot <- forloop_output |>
   ggplot(aes(x = factor(GPSC, levels = country_gpsc_vector), y = antibiotic_tidy, fill = proportion_change)) +
   geom_tile(colour = "black") +
-  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0, limits = c(-1,1)) +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0, limits = c(-1,1), guide = "none") +
   coord_fixed() +
   theme(
-    plot.margin = unit(c(0,0,0,0), 'lines')
+    plot.margin = unit(c(1,0,1,0), 'lines')
   ) +
   labs(
     y = "Antibiotic",
@@ -2048,7 +2049,7 @@ pre_post_plot <- forloop_output |>
 pre_post_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "change in GPSC drivers", paste(i, " change plot.svg", sep = ""), fsep = "/")
 
 
-ggsave(pre_post_plot, filename = pre_post_plot_path, dpi = 320, width = 36.58, height = 22.91, units = "cm")
+ggsave(pre_post_plot, filename = pre_post_plot_path, dpi = 320, width = 30.58, height = 26.91, units = "cm")
 
 
 }
@@ -2381,6 +2382,7 @@ write_csv(coverage_table_pcv25, file = "sample figures/coverage table pcv25.csv"
 
 # filter for isolates that are PEN susceptible but intermediate or resistant for other beta lactams
 # all abnormal isolates are intermediate for CFX
+
 abnormal_resistance <- metadata |>
   select(1:13, AST_method_Cefuroxime, Cefuroxime, WGS_CFX, WGS_CFX_SIR, AST_method_Penicillin, Penicillin, WGS_PEN, WGS_PEN_SIR_Meningitis) |>
   filter(WGS_PEN_SIR_Meningitis %in% "S" & !WGS_CFX_SIR %in% "S") |>
@@ -2396,25 +2398,30 @@ abnormal_resistance <- metadata |>
 write_csv(abnormal_resistance, file = "summarised data/abnormal resistance.csv")
 
 # concordance between 3rd gen cephalosporins
-non_concordant <- metadata |>
-  filter(WGS_CFT_SIR_Meningitis != WGS_TAX_SIR_Meningitis) |>
+concordant <- metadata |>
+  filter(WGS_CFT_SIR_Meningitis == WGS_TAX_SIR_Meningitis) |>
   select(1:13, AST_method_Cefotaxime, Cefotaxime, WGS_TAX, WGS_TAX_SIR_Meningitis, AST_method_Ceftriaxone, Ceftriaxone, WGS_CFT, WGS_CFT_SIR_Meningitis) |>
   mutate(
-    AST_TAX_SIR = ifelse(Cefotaxime <= 0.5, "S",
-                         ifelse(Cefotaxime >= 2, "R", "I")),
-    AST_CFT_SIR = ifelse(Ceftriaxone <= 0.5, "S",
-                         ifelse(Ceftriaxone >= 2, "R", "I")),
+    Cefotaxime_clean = as.numeric(str_remove_all(Cefotaxime, "[< <=<>]")),
+    AST_TAX_SIR = ifelse(Cefotaxime_clean >= 2, "R",
+                                ifelse(Cefotaxime_clean <= 0.5 | Cefotaxime %in% "< 0,008", "S", "I")),
+    Ceftriaxone_clean = as.numeric(str_remove_all(Ceftriaxone, "[< <=<>]")),
+    AST_CFT_SIR = ifelse(Ceftriaxone %in% c("S", "I"), Ceftriaxone,
+                                ifelse(Ceftriaxone_clean >= 2, "R", 
+                                       ifelse(Ceftriaxone <= 0.5, "S", "I"))),
     concordant_TAX = ifelse(AST_TAX_SIR == WGS_TAX_SIR_Meningitis, "T", "F"),
     concordant_CFT = ifelse(AST_CFT_SIR == WGS_CFT_SIR_Meningitis, "T", "F"),
     AST_concordant_3GC = ifelse(is.na(AST_CFT_SIR)|is.na(AST_TAX_SIR), "NA",
                             ifelse(AST_CFT_SIR == AST_TAX_SIR, "T", "F"))
   ) |>
-  relocate(AST_TAX_SIR, .after = Cefotaxime) |>
-  relocate(AST_CFT_SIR, .after = Ceftriaxone) |>
+  relocate(Cefotaxime_clean, .after = Cefotaxime) |>
+  relocate(AST_TAX_SIR, .after = Cefotaxime_clean) |>
+  relocate(Ceftriaxone_clean, .after = Ceftriaxone) |>
+  relocate(AST_CFT_SIR, .after = Ceftriaxone_clean) |>
   relocate(concordant_TAX, .after = WGS_TAX_SIR_Meningitis) |>
   relocate(concordant_CFT, .after = WGS_CFT_SIR_Meningitis)
 
-write_csv(non_concordant, file = "summarised data/3rd gen cephalosporin non concordant.csv")
+write_csv(concordant, file = "summarised data/3rd gen cephalosporin concordant.csv")
 
 
 # phenotypic and predicted MIC for TAX
