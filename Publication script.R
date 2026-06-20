@@ -353,7 +353,7 @@ graph_dataset$vaccine <- ifelse(graph_dataset$serotype_clean %in% c(pcv7_serotyp
 
 # table with continent manifestation for plotting
 continent_year_tally <- metadata |>
-  filter(!is.na(Year) & !is.na(Continent) & !Year %in% "_" & !Manifest_category %in% "UNKNOWN") |>
+  filter(!is.na(Year) & !is.na(Continent) & !Year %in% "_") |>
   group_by(Continent, Year, Manifest_category) |>
   tally() |>
   mutate(
@@ -370,8 +370,8 @@ continent_year_plot <- continent_year_tally |>
   ggplot(aes(x = as.factor(Year), y = n, fill = Manifest_category)) +
   geom_bar(stat = "identity") +
   facet_grid(continent_tidy ~ ., scales = "free_y") +
-  scale_fill_manual(values = c("#BA55D3", "#2ECC71", "#00BFFF", "#FF8C00"),
-                    labels = c("Carriage", "Diseased carriage", "IPD", "Non IPD")) +
+  scale_fill_manual(values = c("#BA55D3", "#2ECC71", "#00BFFF", "#FF8C00", "#808080"),
+                    labels = c("Carriage", "Diseased carriage", "IPD", "Non IPD", "Unknown")) +
   labs(
     x = "Year",
     y = "Number of isolates",
@@ -386,17 +386,32 @@ continent_year_plot <- continent_year_tally |>
     legend.title = element_text(size = 32),
     legend.text = element_text(size = 30),
     legend.key.size = unit(1.5, "cm"),
-    axis.text = element_text(size = 26),
+    axis.text = element_text(size = 30),
     strip.text.y = element_text(size = 28),
-    axis.text.x = element_text(size = 28, angle = 45, hjust = 1),
-    axis.title = element_text(size = 30)
+    axis.text.x = element_text(size = 30, angle = 45, hjust = 1),
+    axis.title = element_text(size = 30),
+    panel.spacing.y = unit(2, "lines")
   )
-
 
 
 continent_year_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "summary plots", "continent year plot.svg", fsep = "/")
 
-ggsave(continent_year_plot, filename = continent_year_plot_path, dpi = 320, width =80.58, height = 46, units = "cm")
+ggsave(continent_year_plot, filename = continent_year_plot_path, dpi = 320, width =80.58, height = 50, units = "cm")
+
+
+dir.create("summarised data/data overview")
+
+continent_country_table <- metadata |>
+  group_by(Continent, Country) |>
+  tally()
+
+continent_manifest_table <- metadata |>
+  group_by(Continent, Manifest_category) |>
+  tally() 
+
+write_csv(continent_country_table, file = "summarised data/data overview/continent country table.csv")
+
+write_csv(continent_manifest_table, file = "summarised data/data overview/continent manifest table.csv")
 
 #----------------------------------------- panels ----------------------------------------
 
@@ -1756,24 +1771,8 @@ write_csv(complete_proportion_table, file = complete_proportion_path)
 serotype_colors_vector <- setNames(metadata$serotype_colour, metadata$serotype_clean)
 
 
-# obtain list of countries with 5 or more pre and post pcv10 isolates
-continent_country_period <- metadata |>
+continent_country_period_vaccine <- metadata |>
   group_by(Continent, Country, GPSC, vaccine_binom) |>
-  tally() |>
-  filter(n > 10)
-
-# filter for countries with both pre/post PCV10/13 isolates
-continent_country_period_vaccine <- continent_country_period |>
-  group_by(Country) |>
-  filter(n() > 1) |>
-  pivot_wider(names_from = vaccine_binom, values_from = n) 
-
-# obtain list of countries
-vaccine_country_list <- continent_country_period_vaccine$Country
-
-metadata |>
-  filter(Country %in% "South Africa") |>
-  group_by(GPSC, vaccine_binom) |>
   tally() |>
   pivot_wider(names_from = vaccine_binom, values_from = n) |>
   filter(PREPCV13 > 10 & POSTPCV13 > 10 & !GPSC %in% "unknown") |>
@@ -1781,14 +1780,14 @@ metadata |>
     total = rowSums(across(where(is.numeric)))
   ) |>
   ungroup() |>
-  arrange(desc(total)) |>
-  slice_head(n = 15) |>
-  view()
+  arrange(desc(total))
 
 
-country_list <- c("Malawi", "South Africa", "The Gambia", "Cambodia", "China", "Israel", 
-                  "Taiwan", "Denmark", "France", "Ireland", "Norway", "Spain", 
-                  "United Kingdom", "Argentina", "United States")
+country_list <- unique(continent_country_period_vaccine$Country)
+
+antibiotic <- c("WGS_PEN_SIR_Meningitis", "WGS_AMO_SIR", "WGS_TAX_SIR_Meningitis", "WGS_CFT_SIR_Meningitis",
+                "WGS_MER_SIR", "WGS_CFX_SIR", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR",
+                "WGS_CHL_SIR", "WGS_RIF_SIR", "WGS_KAN_SIR", "MDR")
 
 # test for EU
 
@@ -1847,14 +1846,14 @@ country_list <- c("Malawi", "South Africa", "The Gambia", "Cambodia", "China", "
 
 
 dir.create(path = "figures/change in GPSC drivers")
-  
+
 
 for(i in country_list){
   
   forloop_output_pre <- data.frame()
   forloop_output_post <- data.frame()
   forloop_output <- data.frame()
-  reference <- data.frame()
+  reference_df <- data.frame()
   
   country_gpsc <- metadata |>
     filter(Country %in% i) |>
@@ -1958,7 +1957,7 @@ for(i in country_list){
   # calculate change in percentage resistance in each GPSC for each antibiotic post-PCV10
   row_percentage_change <- row_for_dataframe |>
     mutate(
-      proportion_change = proportion_pre - proportion_post
+      proportion_change = proportion_post - proportion_pre
     ) |>
     select(-c(antibiotic_post, proportion_pre, proportion_post)) |>
     rename(
@@ -1968,10 +1967,30 @@ for(i in country_list){
   # rbind output
   
   forloop_output <- rbind(row_percentage_change, forloop_output)
+  
+  reference <- metadata |>
+    filter(Country %in% i & GPSC %in% country_gpsc_vector & !!sym((t)) %in% c("S", "I", "R")) |>
+    group_by(GPSC, !!sym((t)), vaccine_binom) |>
+    tally() |>
+    pivot_wider(names_from = !!sym((t)), values_from = n, values_fill = 0)
+  
+  reference <- reference |>
+    mutate(
+      R = ifelse("R" %in% names(reference), R, NA),
+      I = ifelse("I" %in% names(reference), I, NA),
+      country = i,
+      antibiotic = t
+    )
+  
+  reference[is.na(reference)] <- 0
+  reference$total = rowSums(reference[, !colnames(reference) %in% c("GPSC", "vaccine_binom", "country", "antibiotic")], na.rm = TRUE)
+  reference$proportion = reference$R/reference$total
+  
+  reference$vaccine_binom <- factor(reference$vaccine_binom, levels = c("POSTPCV13", "PREPCV13"))
 
   # rbind reference
   
-  reference <- rbind(row_for_dataframe, reference)
+  reference_df <- rbind(reference, reference_df)
   
   }
 
@@ -1985,13 +2004,8 @@ forloop_output$antibiotic_tidy <- factor(forloop_output$antibiotic_tidy, levels 
                                                                                     "Ceftriaxone", "Cefuroxime", 
                                                                                     "Amoxicillin", "Penicillin"))
 
-reference_clean <- reference |>
-  rename(
-    antibiotic = antibiotic_pre
-  ) |>
-  select(-antibiotic_post)
 
-reference_raw <- left_join(reference_clean, antibiotic_tidying, by = "antibiotic")
+reference_raw <- left_join(reference_df, antibiotic_tidying, by = "antibiotic")
 
 reference_raw$antibiotic_tidy <- factor(reference_raw$antibiotic_tidy, levels = c("Penicillin", "Amoxicillin", "Cefuroxime",
                                                                           "Ceftriaxone", "Cefotaxime", "Meropenem",
@@ -2001,22 +2015,16 @@ reference_raw$antibiotic_tidy <- factor(reference_raw$antibiotic_tidy, levels = 
 
 
 # write out raw and calculated reference file for each continent
-resistance_reference_raw <- reference_raw |>
-  mutate(
-    proportion_change = proportion_pre - proportion_post
-  ) |>
+resistance_reference_clean <- reference_raw |>
   select(-antibiotic) |>
-  relocate(antibiotic_tidy, .before = GPSC)
+  relocate(antibiotic_tidy, .before = GPSC) |>
+  relocate(country, .before = antibiotic_tidy) |>
+  relocate(I, .after = S)
 
-
-
-resistance_reference_change <- forloop_output |>
-  select(-antibiotic) |>
-  pivot_wider(names_from = GPSC, values_from = proportion_change)
 
 pre_post_reference_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "change in GPSC drivers", paste(i, " change reference.csv", sep = ""), fsep = "/")
 
-write_csv(resistance_reference_change, file = pre_post_reference_path)
+write_csv(resistance_reference_clean, file = pre_post_reference_path)
 
 # tile plot
 pre_post_plot <- forloop_output |>
@@ -2036,9 +2044,9 @@ pre_post_plot <- forloop_output |>
   theme(
     title = element_text(size = 20),
     axis.title.y = element_text(size = 22),
-    axis.text.y = element_text(size = 18),
+    axis.text.y = element_text(size = 22),
     axis.title.x = element_text(size = 22),
-    axis.text.x = element_text(size = 18),
+    axis.text.x = element_text(size = 22),
     axis.ticks = element_blank(),
     legend.title = element_text(margin = margin(b = 20, unit = "pt"), size = 16),
     legend.text = element_text(size = 16),
@@ -2053,6 +2061,7 @@ ggsave(pre_post_plot, filename = pre_post_plot_path, dpi = 320, width = 30.58, h
 
 
 }
+
 
 
 
@@ -2194,7 +2203,7 @@ pcv13_coverage_figure <- serotype_coverage_vaccine_unique_clean_coloured |>
   labs(
     x = "Antibiotic",
     y = "Number of isolates",
-    title = "PCV13 serotypes driving AMR post-PCV13 implementation in each continent"
+    title = "PCV13 (Pfizer) serotypes driving AMR post-PCV13 implementation in each continent"
   ) +
   theme(
     title = element_text(size = 24),
@@ -2261,7 +2270,7 @@ pcv25_potential_coverage_plot <- serotype_coverage_vaccine_unique_clean_coloured
     title = "Potential vaccine coverage of AMR isolates post-PCV13 implementation in each continent"
   ) +
   theme(
-    title = element_text(size = 24),
+    title = element_blank(),
     axis.text.x = element_text(size = 18, angle = 45, hjust = 1),
     axis.text.y = element_text(size = 18),
     axis.title = element_text(size = 22), 
@@ -2307,7 +2316,7 @@ coverage_raw <- coverage_raw |>
 
 coverage_clean <- coverage_raw |>
   mutate(
-    total = rowSums(coverage_raw[,2:8]),
+    total = rowSums(across(where(is.numeric))),
     pcv13_percentage = paste(round(100 * PCV13_PFIZER/total, 2), "%"),
     pcv13_clean = paste0(pcv13_percentage, " (", PCV13_PFIZER, ")"),
     total_pcv15 = PCV13_PFIZER + PCV15_MERCK,
@@ -2364,7 +2373,7 @@ for(i in Continent){
   
   coverage_clean_pcv25 <- coverage_raw_pcv25 |>
     mutate(
-      total = rowSums(coverage_raw_pcv25[,2:3]),
+      total = rowSums(across(where(is.numeric))),
       pcv25_percentage = paste(round(100 * PCV25/total, 2), "%"),
       pcv25_clean = paste0(pcv25_percentage, " (", PCV25, ")")
     ) |>
@@ -2377,6 +2386,7 @@ colnames(coverage_table_pcv25) <- c("Continent", "Antibiotic", "PCV25 (Inventpri
 
 write_csv(coverage_table_pcv25, file = "sample figures/coverage table pcv25.csv")
 
+
 #------------------------------------ beta-lactam analysis and concordance between 3rd gen cephalosporins -------------------------------------
 
 
@@ -2384,7 +2394,7 @@ write_csv(coverage_table_pcv25, file = "sample figures/coverage table pcv25.csv"
 # all abnormal isolates are intermediate for CFX
 
 abnormal_resistance <- metadata |>
-  select(1:13, AST_method_Cefuroxime, Cefuroxime, WGS_CFX, WGS_CFX_SIR, AST_method_Penicillin, Penicillin, WGS_PEN, WGS_PEN_SIR_Meningitis) |>
+  select(1:13, GPSC, pbp1a, pbp2b, pbp2x, PBP1A_2B_2X__autocolour, AST_method_Cefuroxime, Cefuroxime, WGS_CFX, WGS_CFX_SIR, AST_method_Penicillin, Penicillin, WGS_PEN, WGS_PEN_SIR_Meningitis) |>
   filter(WGS_PEN_SIR_Meningitis %in% "S" & !WGS_CFX_SIR %in% "S") |>
   mutate(
     Cefuroxime_clean = as.numeric(str_remove_all(Cefuroxime, "[< <=<>]")),
@@ -2400,11 +2410,11 @@ abnormal_resistance <- metadata |>
   relocate(AST_PEN_SIR, .after = Penicillin_clean)
 
 
-write_csv(abnormal_resistance, file = "summarised data/abnormal resistance.csv")
+write_csv(abnormal_resistance, file = "summarised data/3GC concordance/abnormal resistance.csv")
 
 # master datasheet for concordance between 3rd gen cephalosporins
 concordance_master <- metadata |>
-  select(1:13, AST_method_Cefotaxime, Cefotaxime, WGS_TAX, WGS_TAX_SIR_Meningitis, AST_method_Ceftriaxone, Ceftriaxone, WGS_CFT, WGS_CFT_SIR_Meningitis) |>
+  select(1:13, GPSC, pbp1a, pbp2b, pbp2x, PBP1A_2B_2X__autocolour, AST_method_Cefotaxime, Cefotaxime, WGS_TAX, WGS_TAX_SIR_Meningitis, AST_method_Ceftriaxone, Ceftriaxone, WGS_CFT, WGS_CFT_SIR_Meningitis) |>
   mutate(
     WGS_concordant_3GC = ifelse(WGS_TAX_SIR_Meningitis == WGS_CFT_SIR_Meningitis, "T", "F"),
     Cefotaxime_clean = as.numeric(str_remove_all(Cefotaxime, "[< <=<>]")),
@@ -2427,7 +2437,7 @@ concordance_master <- metadata |>
   relocate(concordant_CFT, .after = WGS_CFT_SIR_Meningitis)
 
 
-write_csv(concordance_master, file = "summarised data/master concordant.csv")
+write_csv(concordance_master, file = "summarised data/3GC concordance/master concordant.csv")
 
 
 # concordance in WGS prediction between CFT and TAX
@@ -2441,7 +2451,7 @@ concordance_3gc <- concordance_master |>
     proportion = n/total
   ) 
 
-write_csv(concordance_3gc, file = "summarised data/concordance 3GC WGS.csv")
+write_csv(concordance_3gc, file = "summarised data/3GC concordance/concordance 3GC WGS.csv")
 
 # phenotypic and predicted MIC for TAX
 concordance_TAX <- concordance_master |>
@@ -2453,7 +2463,7 @@ concordance_TAX <- concordance_master |>
     proportion = n/total
   ) 
 
-write_csv(concordance_TAX, file = "summarised data/concordance TAX.csv")
+write_csv(concordance_TAX, file = "summarised data/3GC concordance/concordance TAX.csv")
 
 # phenotypic and predicted MIC for CFT
 concordance_CFT <- concordance_master |>
@@ -2465,7 +2475,7 @@ concordance_CFT <- concordance_master |>
     proportion = n/total
   )
 
-write_csv(concordance_CFT, file = "summarised data/concordance CFT.csv")
+write_csv(concordance_CFT, file = "summarised data/3GC concordance/concordance CFT.csv")
 
 
 # comparison of phenotypic MIC between TAX and CFT
@@ -2479,10 +2489,182 @@ concordance_3GC_phenotype <- concordance_master |>
     proportion = n/total
   ) 
 
-write_csv(concordance_3GC_phenotype, file = "summarised data/concordance 3GC phenotype.csv")
+write_csv(concordance_3GC_phenotype, file = "summarised data/3GC concordance/concordance 3GC phenotype.csv")
 
 
 
+# tax concordance country
+tax_country_plot <- concordance_master |>
+  filter(!is.na(concordant_TAX)) |>
+  group_by(Country, concordant_TAX) |>
+  tally() |>
+  ggplot(aes(x = Country, y = n, fill = concordant_TAX)) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_manual(values = c("blue", "red")) +
+  labs(
+    title = "TAX",
+    x = "Country",
+    y = "Number of isolates",
+    fill = "Concordance of\nTAX resistance"
+  ) +
+  theme(
+    title = element_text(size = 26),
+    axis.title.y = element_text(size = 22),
+    axis.text.y = element_text(size = 18),
+    axis.title.x = element_text(size = 22),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(size = 18, hjust = 1, angle = 45),
+    legend.title = element_text(margin = margin(b = 10, unit = "pt"), size = 16),
+    legend.text = element_text(size = 16),
+    legend.key.size = unit(0.8, "cm")
+  )
+
+ggsave(tax_country_plot, filename = "figures/concordance supplementary/tax_country.svg", dpi = 320, width = 33.58, height = 20.91, units = "cm")
+
+tax_country_table <- concordance_master |>
+  filter(!is.na(concordant_TAX)) |>
+  group_by(Country, concordant_TAX) |>
+  tally() |>
+  pivot_wider(names_from = concordant_TAX, values_from = n, values_fill = 0) |>
+  mutate(
+    total = rowSums(across(where(is.numeric))),
+    proportion = T/total
+  )
+
+write_csv(tax_country_table, file = "summarised data/3GC concordance/tax country reference.csv")
+
+# tax concordance gpsc
+tax_concordance_gpsc <- concordance_master |>
+  filter(!is.na(concordant_TAX)) |>
+  group_by(GPSC, concordant_TAX) |>
+  tally() |>
+  pivot_wider(names_from = concordant_TAX, values_from = n, values_fill = 0) |>
+  mutate(
+    total = rowSums(across(where(is.numeric))),
+    proportion = T/total
+  ) |>
+  filter(total > 19) |>
+  arrange(proportion) |>
+  ungroup() |>
+  slice_head(n = 20) 
+
+tax_concordance_gpsc_list <- sort(as.numeric(tax_concordance_gpsc$GPSC))
+
+tax_gpsc_plot <- concordance_master |>
+  filter(!is.na(concordant_TAX) & GPSC %in% tax_concordance_gpsc_list) |>
+  group_by(GPSC, concordant_TAX) |>
+  tally() |>
+  ggplot(aes(x = factor(GPSC, levels = tax_concordance_gpsc_list), y = n, fill = concordant_TAX)) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_manual(values = c("blue", "red")) +
+  labs(
+    x = "GPSC",
+    y = "Number of isolates",
+    fill = "Concordance of\nTAX resistance"
+  ) +
+  theme(
+    title = element_text(size = 20),
+    axis.title.y = element_text(size = 22),
+    axis.text.y = element_text(size = 18),
+    axis.title.x = element_text(size = 22),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(size = 18),
+    legend.title = element_text(margin = margin(b = 10, unit = "pt"), size = 16),
+    legend.text = element_text(size = 16),
+    legend.key.size = unit(0.8, "cm")
+  )
+
+ggsave(tax_gpsc_plot, filename = "figures/concordance supplementary/tax_gpsc.svg", dpi = 320, width = 33.58, height = 16.91, units = "cm")
+
+write_csv(tax_concordance_gpsc, file = "summarised data/3GC concordance/tax gpsc reference.csv")
+
+# cft concordance country
+cft_country_plot <- concordance_master |>
+  filter(!is.na(concordant_CFT)) |>
+  group_by(Country, concordant_CFT) |>
+  tally() |>
+  ggplot(aes(x = Country, y = n, fill = concordant_CFT)) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_manual(values = c("blue", "red")) +
+  labs(
+    title = "CFT",
+    x = "Country",
+    y = "Number of isolates",
+    fill = "Concordance of\nCFT resistance"
+  ) +
+  theme(
+    title = element_text(size = 26),
+    axis.title.y = element_text(size = 22),
+    axis.text.y = element_text(size = 18),
+    axis.title.x = element_text(size = 22),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(size = 18, hjust = 1, angle = 45),
+    legend.title = element_text(margin = margin(b = 10, unit = "pt"), size = 16),
+    legend.text = element_text(size = 16),
+    legend.key.size = unit(0.8, "cm")
+  )
+
+ggsave(cft_country_plot, filename = "figures/concordance supplementary/cft_country.svg", dpi = 320, width = 33.58, height = 20.91, units = "cm")
+
+
+cft_country_table <- concordance_master |>
+  filter(!is.na(concordant_CFT)) |>
+  group_by(Country, concordant_CFT) |>
+  tally() |>
+  pivot_wider(names_from = concordant_CFT, values_from = n, values_fill = 0) |>
+  mutate(
+    total = rowSums(across(where(is.numeric))),
+    proportion = T/total
+  )
+
+write_csv(cft_country_table, file = "summarised data/3GC concordance/cft country reference.csv")
+
+
+# cft concordance gpsc
+cft_concordance_gpsc <- concordance_master |>
+  filter(!is.na(concordant_CFT)) |>
+  group_by(GPSC, concordant_CFT) |>
+  tally() |>
+  pivot_wider(names_from = concordant_CFT, values_from = n, values_fill = 0) |>
+  mutate(
+    total = rowSums(across(where(is.numeric))),
+    proportion = T/total
+  ) |>
+  filter(total > 19) |>
+  arrange(proportion) |>
+  ungroup() |>
+  slice_head(n = 20) 
+
+cft_concordance_gpsc_list <- sort(as.numeric(cft_concordance_gpsc$GPSC))
+
+cft_gpsc_plot <- concordance_master |>
+  filter(!is.na(concordant_CFT) & GPSC %in% cft_concordance_gpsc_list) |>
+  group_by(GPSC, concordant_CFT) |>
+  tally() |>
+  ggplot(aes(x = factor(GPSC, levels = cft_concordance_gpsc_list), y = n, fill = concordant_CFT)) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_manual(values = c("blue", "red")) +
+  labs(
+    x = "GPSC",
+    y = "Number of isolates",
+    fill = "Concordance of\nCFT resistance"
+  ) +
+  theme(
+    title = element_text(size = 20),
+    axis.title.y = element_text(size = 22),
+    axis.text.y = element_text(size = 18),
+    axis.title.x = element_text(size = 22),
+    axis.ticks = element_line(linewidth = 1),
+    axis.text.x = element_text(size = 18),
+    legend.title = element_text(margin = margin(b = 10, unit = "pt"), size = 16),
+    legend.text = element_text(size = 16),
+    legend.key.size = unit(0.8, "cm")
+  )
+
+
+ggsave(cft_gpsc_plot, filename = "figures/concordance supplementary/cft_gpsc.svg", dpi = 320, width = 33.58, height = 16.91, units = "cm")
+
+write_csv(cft_concordance_gpsc, file = "summarised data/3GC concordance/cft gpsc reference.csv")
 
 
 
