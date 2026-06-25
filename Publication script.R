@@ -191,7 +191,7 @@ world_annotated <- world_annotated |>
 world_plot <- ggplot(data = world_annotated) +
   geom_sf(fill = "white") +
   new_scale_fill() +
-  geom_sf(aes(fill = log10(n))) +
+  geom_sf(aes(fill = log10(n + 1))) +
   scale_fill_gradientn(colours = c("blue", "steelblue", "pink", "red"), na.value = "white", limits = c(0, 4.2)) +
   theme(
     axis.ticks = element_blank(),
@@ -199,8 +199,8 @@ world_plot <- ggplot(data = world_annotated) +
     panel.grid = element_blank(),
     axis.title = element_blank(),
     axis.text = element_blank(),
-    legend.title = element_text(size = 28),
-    legend.text = element_text(size = 24),
+    legend.title = element_text(size = 25),
+    legend.text = element_text(size = 23),
     legend.key.size = unit(1.2, "cm")
   ) 
 
@@ -420,9 +420,9 @@ write_csv(continent_manifest_table, file = "summarised data/data overview/contin
 # join serotype/gpsc table for CLI, COT, ERY, PEN, RIF, TET
 antibiotic <- c("WGS_PEN_SIR_Meningitis", "WGS_AMO_SIR", "WGS_TAX_SIR_Meningitis", "WGS_CFT_SIR_Meningitis",
                 "WGS_MER_SIR", "WGS_CFX_SIR", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR",
-                "WGS_CHL_SIR", "WGS_RIF_SIR", "WGS_KAN_SIR", "MDR")
+                "WGS_CHL_SIR", "MDR")
 
-antibiotic_join <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR", "WGS_CHL_SIR", "WGS_RIF_SIR", "WGS_KAN_SIR", "MDR")
+antibiotic_join <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR", "WGS_CHL_SIR", "MDR")
 
 antibiotic_diverse_serotype <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_TET_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "MDR")
 
@@ -436,6 +436,8 @@ world <- subset(world, region != "Antarctica")
 setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/figures")
 
 
+analysis_proportion_df <- data.frame()
+analysis_proportion_df_complete <- data.frame()
 
 ### panel and forest plot for loops
 for(p in period){
@@ -450,7 +452,7 @@ for(p in period){
   for(i in antibiotic){
   
   #filter out isolates that failed resistance prediction
-  tidy_dataset <- metadata_period |> filter(!!((sym(i))) %in% c("S", "I", "R"))
+  tidy_dataset <- metadata_period |> filter(!!((sym(i))) %in% c("S", "I", "R") & !Country %in% c("France", "Spain"))
   
   ### create new directory for each looped variable
   newdir <- paste0(maindir,"/", i, " plots ", p)
@@ -1050,28 +1052,38 @@ for(p in period){
     head()
   
   # rename columns
-  colnames(proportion_table) <- c("Continent", "Proportion", "Lower", "Upper")
+  colnames(proportion_table) <- c("Continent", "Percentage", "Lower", "Upper")
   
   # save proportion table for each antibiotic into their respective folder
   proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/proportion.csv", sep = ""), fsep = "/")
   write_csv(proportion_table, file = proportion_path)
   
   # round to 2 significant figures
-  proportion_table <- proportion_table |>
-    mutate(across(c("Proportion", "Lower", "Upper"), round, 2))
+  reference_proportion_table <- proportion_table |>
+    mutate(across(c("Percentage", "Lower", "Upper"), ~ . * 100)) |>
+    mutate(across(c("Percentage", "Lower", "Upper"), round, 2))
   
   # paste proportion and CIs togther
-  proportion_table$proportion_ci <- paste0(proportion_table$Proportion, " (", proportion_table$Lower, ", ", proportion_table$Upper, ")")
+  reference_proportion_table$proportion_ci <- paste0(reference_proportion_table$Percentage, "%", " (", reference_proportion_table$Lower, "%, ", reference_proportion_table$Upper, "%)")
   
   # select for continent and proportion/CI columns
-  proportion_table <- proportion_table |>
+  reference_proportion_table <- reference_proportion_table |>
     select(c(Continent, proportion_ci))
   
   # rename proportion/CI column based on looped variable
-  colnames(proportion_table)[which(names(proportion_table) == "proportion_ci")] <- df_name
+  colnames(reference_proportion_table)[which(names(reference_proportion_table) == "reference_proportion_ci")] <- df_name
   
   # rename proportion table to looped variable
-  assign(df_name, proportion_table)
+  assign(df_name, reference_proportion_table)
+  
+  analysis_proportion_table <- proportion_table |>
+    mutate(
+      period = p,
+      antibiotic = i
+    )
+  
+  analysis_proportion_df <- rbind(analysis_proportion_table, analysis_proportion_df)
+  
   
   }
 
@@ -1084,7 +1096,7 @@ for(p in period){
   df_list <- list(WGS_AMO_SIR_proportion, WGS_PEN_SIR_Meningitis_proportion, WGS_CFX_SIR_proportion,
                   WGS_TAX_SIR_Meningitis_proportion, WGS_CFT_SIR_Meningitis_proportion, WGS_MER_SIR_proportion,
                   WGS_CHL_SIR_proportion, WGS_CLI_SIR_proportion, WGS_ERY_SIR_proportion,
-                  WGS_TET_SIR_proportion, WGS_COT_SIR_proportion, WGS_RIF_SIR_proportion, WGS_KAN_SIR_proportion, MDR_proportion)
+                  WGS_TET_SIR_proportion, WGS_COT_SIR_proportion, MDR_proportion)
   
   # join all tables together
   complete_proportion_table <- df_list |>
@@ -1092,15 +1104,48 @@ for(p in period){
   
   colnames(complete_proportion_table) <- c("Continent", "Amoxicillin", "Penicillin", "Cefuroxime", "Cefotaxime", 
                                            "Ceftriaxone", "Meropenem", "Chloramphenicol", "Clindamycin", "Erythromycin", 
-                                           "Tetracycline", "Co-trimoxazole", "Rifampin", "Kanamycin", "MDR")
+                                           "Tetracycline", "Co-trimoxazole", "MDR")
   
   # save proportion table for each antibiotic into their respective folder
   complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir,"/complete proportion.csv", sep = ""), fsep = "/")
   
   write_csv(complete_proportion_table, file = complete_proportion_path)
   
-  
+ 
+  analysis_proportion_df_complete <- rbind(analysis_proportion_df, analysis_proportion_df_complete)
 }
+
+analysis_proportion_df_complete$period <- factor(analysis_proportion_df_complete$period, levels = c("PREPCV13", "POSTPCV13"))
+
+analysis_proportion_df_complete <- left_join(analysis_proportion_df_complete, antibiotic_tidying, by = "antibiotic") |>
+  select(-antibiotic)
+
+analysis_proportion_df_complete$antibiotic_tidy <- factor(analysis_proportion_df_complete$antibiotic_tidy, levels = c("Amoxicillin", "Penicillin", "Cefuroxime", "Cefotaxime", 
+                                                                                                                      "Ceftriaxone", "Meropenem", "Chloramphenicol", "Clindamycin", "Erythromycin", 
+                                                                                                                      "Tetracycline", "Co-trimoxazole", "MDR"))
+
+analysis_proportion_df_complete |>
+  ggplot(aes(x = antibiotic_tidy, y = Percentage*100, fill = period)) +
+  geom_col(width = 0.8, stat = "identity", position = position_dodge(width = 0.8)) +
+  geom_errorbar(aes(ymin = Lower*100, ymax = Upper*100), position = position_dodge(width = 0.8)) +
+  facet_wrap(~Continent, ncol = 3) +
+  scale_fill_manual(values = c("#E1BE6A", "#40B0A6")) +
+  scale_y_continuous(limits = c(0, 100)) +
+  labs(
+    x = "Antibiotic",
+    y = "Percentage",
+    fill = "Period"
+    ) +
+  theme(
+    axis.title = element_text(size = 24),
+    axis.text.x = element_text(size = 22, hjust = 1, angle = 45),
+    axis.text.y = element_text(size = 22),
+    legend.title = element_text(size = 22),
+    legend.text = element_text(size = 16),
+    legend.key.size = unit(0.8, "cm"),
+    strip.text = element_text(size = 16),
+    legend.background = element_blank()
+  )
 
 
 
@@ -1712,7 +1757,7 @@ for(i in antibiotic){
     head()
   
   # rename columns
-  colnames(proportion_table) <- c("Continent", "Proportion", "Lower", "Upper")
+  colnames(proportion_table) <- c("Continent", "Percentage", "Lower", "Upper")
   
   # save proportion table for each antibiotic into their respective folder
   proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/proportion.csv", sep = ""), fsep = "/")
@@ -1720,10 +1765,11 @@ for(i in antibiotic){
   
   # round to 2 significant figures
   proportion_table <- proportion_table |>
-    mutate(across(c("Proportion", "Lower", "Upper"), round, 2))
+    mutate(across(c("Percentage", "Lower", "Upper"), ~ . * 100)) |>
+    mutate(across(c("Percentage", "Lower", "Upper"), round, 2))
   
   # paste proportion and CIs togther
-  proportion_table$proportion_ci <- paste0(proportion_table$Proportion, " (", proportion_table$Lower, ", ", proportion_table$Upper, ")")
+  proportion_table$proportion_ci <- paste0(proportion_table$Percentage, "%", " (", proportion_table$Lower, "%, ", proportion_table$Upper, "%)")
   
   # select for continent and proportion/CI columns
   proportion_table <- proportion_table |>
@@ -1742,7 +1788,7 @@ for(i in antibiotic){
 df_list <- list(WGS_AMO_SIR_proportion, WGS_PEN_SIR_Meningitis_proportion, WGS_CFX_SIR_proportion,
                 WGS_TAX_SIR_Meningitis_proportion, WGS_CFT_SIR_Meningitis_proportion, WGS_MER_SIR_proportion,
                 WGS_CHL_SIR_proportion, WGS_CLI_SIR_proportion, WGS_ERY_SIR_proportion,
-                WGS_TET_SIR_proportion, WGS_COT_SIR_proportion, WGS_RIF_SIR_proportion, WGS_KAN_SIR_proportion, MDR_proportion)
+                WGS_TET_SIR_proportion, WGS_COT_SIR_proportion, MDR_proportion)
 
 # join all tables together
 complete_proportion_table <- df_list |>
@@ -1750,7 +1796,7 @@ complete_proportion_table <- df_list |>
 
 colnames(complete_proportion_table) <- c("Continent", "Amoxicillin", "Penicillin", "Cefuroxime", "Cefotaxime", 
                                          "Ceftriaxone", "Meropenem", "Chloramphenicol", "Clindamycin", "Erythromycin", 
-                                         "Tetracycline", "Co-trimoxazole", "Rifampin", "Kanamycin", "MDR")
+                                         "Tetracycline", "Co-trimoxazole", "MDR")
 
 # save proportion table for each antibiotic into their respective folder
 complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", "/complete proportion.csv", fsep = "/")
@@ -1775,7 +1821,7 @@ continent_country_period_vaccine <- metadata |>
   group_by(Continent, Country, GPSC, vaccine_binom) |>
   tally() |>
   pivot_wider(names_from = vaccine_binom, values_from = n) |>
-  filter(PREPCV13 > 10 & POSTPCV13 > 10 & !GPSC %in% "unknown") |>
+  filter(PREPCV13 > 10 & POSTPCV13 > 10 & !GPSC %in% "unknown" & !Country %in% c("Spain", "France")) |>
   mutate(
     total = rowSums(across(where(is.numeric)))
   ) |>
@@ -2389,13 +2435,14 @@ write_csv(coverage_table_pcv25, file = "sample figures/coverage table pcv25.csv"
 
 #------------------------------------ beta-lactam analysis and concordance between 3rd gen cephalosporins -------------------------------------
 
+setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR")
 
 # filter for isolates that are PEN susceptible but intermediate or resistant for other beta lactams
 # all abnormal isolates are intermediate for CFX
 
 abnormal_resistance <- metadata |>
   select(1:13, GPSC, pbp1a, pbp2b, pbp2x, PBP1A_2B_2X__autocolour, AST_method_Cefuroxime, Cefuroxime, WGS_CFX, WGS_CFX_SIR, AST_method_Penicillin, Penicillin, WGS_PEN, WGS_PEN_SIR_Meningitis) |>
-  filter(WGS_PEN_SIR_Meningitis %in% "S" & !WGS_CFX_SIR %in% "S") |>
+  filter(WGS_PEN_SIR_Meningitis %in% "S" & !WGS_CFX_SIR %in% "S" & AST_method_Penicillin %in% "BROTH DILUTION" & AST_method_Cefuroxime %in% "BROTH DILUTION") |>
   mutate(
     Cefuroxime_clean = as.numeric(str_remove_all(Cefuroxime, "[< <=<>]")),
     AST_CFX_SIR = ifelse(Cefuroxime <= 0.5, "S",
@@ -2415,6 +2462,7 @@ write_csv(abnormal_resistance, file = "summarised data/3GC concordance/abnormal 
 # master datasheet for concordance between 3rd gen cephalosporins
 concordance_master <- metadata |>
   select(1:13, GPSC, pbp1a, pbp2b, pbp2x, PBP1A_2B_2X__autocolour, AST_method_Cefotaxime, Cefotaxime, WGS_TAX, WGS_TAX_SIR_Meningitis, AST_method_Ceftriaxone, Ceftriaxone, WGS_CFT, WGS_CFT_SIR_Meningitis) |>
+  filter(AST_method_Cefotaxime %in% "BROTH DILUTION" | AST_method_Ceftriaxone %in% "BROTH DILUTION") |>
   mutate(
     WGS_concordant_3GC = ifelse(WGS_TAX_SIR_Meningitis == WGS_CFT_SIR_Meningitis, "T", "F"),
     Cefotaxime_clean = as.numeric(str_remove_all(Cefotaxime, "[< <=<>]")),
