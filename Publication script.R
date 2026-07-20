@@ -9,6 +9,7 @@ library(rnaturalearthdata)
 library(rnaturalearth)
 library(ggnewscale)
 library(ggpattern)
+library(USP)
 
 filter <- dplyr::filter
 rename <- dplyr::rename
@@ -472,6 +473,7 @@ world <- subset(world, region != "Antarctica")
 
 setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/figures")
 
+dir.create("Proportion")
 
 analysis_proportion_df <- data.frame()
 analysis_proportion_df_complete <- data.frame()
@@ -482,7 +484,7 @@ for(p in period){
   metadata_period <- metadata |>
     filter(vaccine_binom %in% p)
   
-  maindir <- paste0(p," plots")
+  maindir <- paste0("Proportion",p," plots")
   
   dir.create(maindir)
   
@@ -492,7 +494,7 @@ for(p in period){
   tidy_dataset <- metadata_period |> filter(!!((sym(i))) %in% c("S", "I", "R") & !Country %in% c("France", "Spain"))
   
   ### create new directory for each looped variable
-  newdir <- paste0(maindir,"/", i, " plots ", p)
+  newdir <- paste0("Proportion", maindir,"/", i, " plots ", p)
 
   dir.create(newdir)
   
@@ -892,7 +894,7 @@ for(p in period){
   
   # forest plots
   
-  newdir <- paste0(maindir,"/", i, " forest plot ", p)
+  newdir <- paste0("Proportion", maindir,"/", i, " forest plot ", p)
   
   dir.create(newdir)
   
@@ -948,6 +950,7 @@ for(p in period){
   forest(lameta, comb.fixed = lameta$comb.fixed, comb.random = lameta$comb.random, 
          overall = TRUE, studlab = SouthAmerica$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
   dev.off()
+  
   
   #europe
   Europe <- complete |>
@@ -1119,6 +1122,16 @@ for(p in period){
       antibiotic = i
     )
   
+  total <- complete |>
+    filter(!!sym((i)) %in% c("S", "I", "R")) |>
+    group_by(Continent) |>
+    tally() |>
+    mutate(
+      Continent = str_to_title(Continent)
+    )
+  
+  analysis_proportion_table <- left_join(analysis_proportion_table, total)
+  
   analysis_proportion_df <- rbind(analysis_proportion_table, analysis_proportion_df)
   
   
@@ -1159,79 +1172,98 @@ analysis_proportion_df <- left_join(analysis_proportion_df, antibiotic_tidying, 
   select(-c(antibiotic, antibiotic_tidy))
 
 # relevel antibiotic names
-analysis_proportion_df$antibiotic_tidy <- factor(analysis_proportion_df$antibiotic_short, levels = c("AMO", "PEN", "CFX", "TAX", "CFT", "MER", "CHL", "CLI", "ERY", "TET", "COT", "MDR"))
+analysis_proportion_df$antibiotic_short <- factor(analysis_proportion_df$antibiotic_short, levels = c("AMO", "PEN", "CFX", "TAX", "CFT", "MER", "CHL", "CLI", "ERY", "TET", "COT", "MDR"))
 
 
-
-u_test_df <- analysis_proportion_df |>
-  select(Continent, Percentage, period, antibiotic_short) |>
-  pivot_wider(names_from = period, values_from = Percentage)
-
-
-
-utest <- analysis_proportion_df |>
-  filter(antibiotic_short %in% "ERY" & Continent %in% "Europe") |>
-  summarise(
-    p_value = wilcox.test(Percentage ~ period)$p.value
+usp_df <- analysis_proportion_df |>
+  select(c(Continent, Percentage, n, period, antibiotic_short)) |>
+  mutate(
+    R_theoretical = round(Percentage * n),
+    S_theoretical = round((1 - Percentage) * n)
   )
 
+
+antibiotic_list <- unique(usp_df$antibiotic_short)
+
+continent_list <- c("Africa", "North America", "South America", "Oceania", "Asia", "Europe")
+
+amr_usp <- data.frame()
+
+
+
+
+for(i in antibiotic_list){
+  
+  for(t in continent_list){
+  contingency_table <- usp_df |>
+    filter(Continent %in% t & antibiotic_short %in% i) |>
+    select(c(period, R_theoretical, S_theoretical)) |>
+    pivot_longer(names_to = "Resistance", values_to = "n", cols = c(R_theoretical, S_theoretical)) |>
+    pivot_wider(names_from = period, values_from = n) |>
+    select(-Resistance)
+  
+  USP <- USP.test(contingency_table)
+  
+  row_for_usp <- usp_df |>
+    filter(Continent %in% t & antibiotic_short %in% i) |>
+    select(c(Continent, Percentage, period)) |>
+    pivot_wider(names_from = period, values_from = Percentage) |>
+    mutate(
+      antibiotic_short = i,
+      p.value = USP$p.value
+      ) 
+  
+  amr_usp <- rbind(row_for_usp, amr_usp)
+  
+  }
+}
+
+amr_usp$adjusted_p <- p.adjust(amr_usp$p.value, "BH", n = nrow(amr_usp))
+
+for(t in continent_list){
+
+amr_usp_plotting <- amr_usp |>
+  filter(Continent %in% t)
+
 # summary figure for proportion analysis
-analysis_proportion_df |>
-  filter(Continent %in% "Europe" & !antibiotic_short %in% c("KAN", "RIF")) |>
+proportion_plot <- analysis_proportion_df |>
+  filter(Continent %in% t & !antibiotic_short %in% c("KAN", "RIF")) |>
   ggplot(aes(x = period, y = Percentage*100, group = antibiotic_short)) +
   geom_col(width = 0.8, stat = "identity", position = position_dodge(width = 0.8), aes(fill = period)) +
   geom_errorbar(aes(ymin = Lower*100, ymax = Upper*100), position = position_dodge(width = 0.8)) +
+  geom_text(data = amr_usp_plotting, aes(label = paste0("USP\n p=",round(adjusted_p,3)), x = 1.5, y = 100), size = 8) +
   facet_wrap(~antibiotic_short, nrow = 1, strip.position = "bottom") +
-  geom_text(data = utest, aes(label = paste0("U-test\n p=",round(p_value,3)), x = 1.5, y = 95), size = 8) +
-  scale_fill_manual(values = c("#E1BE6A", "#40B0A6")) +
+  scale_fill_manual(values = c("#E1BE6A", "#40B0A6"),
+                    labels = c("Pre-PCV13", "Post-PCV13")) +
   scale_y_continuous(limits = c(0, 100)) +
   labs(
     x = "Antibiotic",
     y = "Percentage",
     fill = "Period",
-    title = "Europe"
-    ) +
+    title = t
+  ) +
   theme(
-    title = element_text(size = 26),
-    axis.title = element_text(size = 24),
+    title = element_text(size = 28),
+    axis.title = element_text(size = 28),
     axis.text.x = element_blank(),
     axis.ticks.x = element_blank(),
-    axis.text.y = element_text(size = 22),
-    legend.title = element_text(size = 22),
-    legend.text = element_text(size = 16),
-    legend.key.size = unit(0.8, "cm"),
+    axis.text.y = element_text(size = 26),
+    legend.title = element_text(size = 26),
+    legend.text = element_text(size = 24),
+    legend.key.size = unit(1, "cm"),
     legend.background = element_blank(),
     strip.placement='outside',
     strip.background.x=element_blank(),
-    strip.text=element_text(size=24,color="black",face="bold"),
+    strip.text=element_text(size=28,color="black",face="bold"),
     panel.spacing.x=unit(1,"pt"),
     panel.grid = element_blank(),
     panel.border = element_blank()
   )
 
-
-# late pcv13 continent distribution
-continent_late_pcv13 <- metadata |>
-  filter(vaccine_binom %in% "POSTPCV13" & !Vaccine_period %in% c("POSTPCV13-1YR", "POSTPCV13-2YR", "POSTPCV13-3YR")) |>
-  group_by(Continent) |>
-  tally()
-write_csv(continent_late_pcv13, file = "POSTPCV13 plots/continent_late_pcv13.csv")
-
-# early pcv13 continent distribution
-continent_early_pcv13 <- metadata |>
-  filter(vaccine_binom %in% "POSTPCV13" & Vaccine_period %in% c("POSTPCV13-1YR", "POSTPCV13-2YR", "POSTPCV13-3YR")) |>
-  group_by(Continent) |>
-  tally()
-write_csv(continent_early_pcv13, file = "POSTPCV13 plots/continent_early_pcv13.csv")
+ggsave(proportion_plot, filename = paste("Proportion/overview figure/",t,".svg"), dpi = 320, width = 53.58, height = 25.91, units = "cm")
 
 
-
-
-
-
-
-
-
+}
 
 
 #----------------------------------------- GPSCs driving resistance pre/post PCV10/13 ----------------
@@ -3875,3 +3907,18 @@ legend <- ggarrange(pcv7_legend, pcv10_legend, pcv13_legend, pcv15_legend, pcv20
 ggsave(legend, file = "sample figures/vaccine coverage legend.svg", , dpi = 320, width = 14, height = 29, units = "cm")
 
 
+
+
+# late pcv13 continent distribution
+continent_late_pcv13 <- metadata |>
+  filter(vaccine_binom %in% "POSTPCV13" & !Vaccine_period %in% c("POSTPCV13-1YR", "POSTPCV13-2YR", "POSTPCV13-3YR")) |>
+  group_by(Continent) |>
+  tally()
+write_csv(continent_late_pcv13, file = "POSTPCV13 plots/continent_late_pcv13.csv")
+
+# early pcv13 continent distribution
+continent_early_pcv13 <- metadata |>
+  filter(vaccine_binom %in% "POSTPCV13" & Vaccine_period %in% c("POSTPCV13-1YR", "POSTPCV13-2YR", "POSTPCV13-3YR")) |>
+  group_by(Continent) |>
+  tally()
+write_csv(continent_early_pcv13, file = "POSTPCV13 plots/continent_early_pcv13.csv")
