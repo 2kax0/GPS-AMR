@@ -1,0 +1,88 @@
+﻿,Early-PCV13,Late-PCV13,
+Continent,n,n,
+AFRICA,2945,2075,
+ASIA,1115,112,
+EUROPE,622,15946,
+NORTH AMERICA,345,1,
+OCEANIA,9,1448,
+SOUTH AMERICA,60,0,
+,,,
+,,,
+Continent,PREPCV13,POSTPCV13,
+AFRICA,6924,5020,
+ASIA,4575,1227,
+EUROPE,3005,16568,
+NORTH AMERICA,1402,346,
+OCEANIA,313,1457,
+SOUTH AMERICA,1674,60,
+,,,
+,,,
+Country,PREPCV13,POSTPCV13,Total
+Angola,0,24,24
+Argentina,352,60,412
+Australia,0,1448,1448
+Bangladesh,139,0,139
+Belarus,97,0,97
+Benin,2,2,4
+Botswana,8,0,8
+Brazil,509,0,509
+Bulgaria,15,0,15
+Cambodia,438,524,962
+Cameroon,2,27,29
+Canada,17,0,17
+Central African Republic,4,0,4
+China,863,102,965
+Czech Republic,3,26,29
+Denmark,53,86,139
+Ecuador,1,0,1
+Egypt,34,0,34
+Ethiopia,100,0,100
+Finland,35,0,35
+France,102,347,449
+Ghana,52,30,82
+Guatemala,1,0,1
+Hungary,17,0,17
+India,554,33,587
+Ireland,71,228,299
+Israel,722,447,1169
+Italy,7,10,17
+Ivory Coast,2,0,2
+Japan,23,0,23
+Kenya,42,0,42
+Kuwait,1,0,1
+Latvia,10,0,10
+Lithuania,10,0,10
+Malawi,903,521,1424
+Malaysia,68,0,68
+Mongolia,15,0,15
+Morocco,38,10,48
+Mozambique,179,0,179
+Myanmar,56,1,57
+Nepal,917,0,917
+Netherlands,1005,0,1005
+New Caledonia,67,0,67
+New Zealand,78,9,87
+Niger,19,0,19
+Nigeria,186,0,186
+Norway,582,1549,2131
+Pakistan,286,0,286
+Papua New Guinea,168,0,168
+Peru,812,0,812
+Poland,262,0,262
+Portugal,18,0,18
+Qatar,39,72,111
+Russian Federation,61,116,177
+Senegal,45,2,47
+Slovenia,94,0,94
+South Africa,3280,3312,6592
+Spain,91,63,154
+Sweden,0,25,25
+Taiwan,116,48,164
+Thailand,260,0,260
+The Gambia,1760,1092,2852
+Togo,120,0,120
+Trinidad And Tobago,97,0,97
+Tunisia,148,0,148
+Turkey,78,0,78
+United Kingdom,472,14118,14590
+United States,1287,346,1633

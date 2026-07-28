@@ -1,0 +1,7 @@
+Continent,Amoxicillin,Penicillin (meningitis),Cefuroxime,Cefotaxime (meningitis),Ceftriaxone (meningitis),Meropenem,Chloramphenicol,Clindamycin,Erythromycin,Tetracycline,Co-trimoxazole,Rifampin,Total,Total (beta-lactams),Total (co-trimoxazole)
+North America,22,98,55,19,18,22,3,37,133,51,40,0,344,344,344
+Europe,85,1582,327,61,84,90,134,918,1563,1595,1434,8,16288,16284,16283
+Africa,52,1020,217,17,18,54,284,188,319,809,1444,4,3293,3291,3293
+Latin America,14,108,49,13,13,14,3,46,62,98,107,0,362,362,362
+Asia,36,394,145,32,35,38,48,183,233,258,189,0,730,729,729
+Oceania,13,258,97,12,10,16,12,118,173,163,154,0,1300,1300,1300

@@ -16,7 +16,7 @@ rename <- dplyr::rename
 summarise <- dplyr::summarise
 
 # set working directory
-setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/")
+setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/raw data/")
 
 #-------------------------------------------- read in files -------------------------------------------
 
@@ -167,6 +167,8 @@ metadata$MDR <- ifelse(str_count(metadata$resistogram, 'R|I') > 2, "R", "S")
 
 #----------------------------------------- Summary tables -----------------------------------------
 
+setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/summarised data/data overview/")
+
 continent_period_supplementary <- metadata |>
   group_by(Continent, vaccine_binom) |>
   tally() |>
@@ -174,7 +176,7 @@ continent_period_supplementary <- metadata |>
   relocate(PREPCV13, .after = Continent)
 
 
-write_csv(continent_period_supplementary, file = "summarised data/data overview/continent period table.csv")
+write_csv(continent_period_supplementary, file = "continent period table.csv")
 
 country_period_supplementary <- metadata |>
   group_by(Country, vaccine_binom) |>
@@ -185,7 +187,7 @@ country_period_supplementary <- metadata |>
   ) |>
   relocate(PREPCV13, .after = Country)
 
-write_csv(country_period_supplementary, file = "summarised data/data overview/country period table.csv")
+write_csv(country_period_supplementary, file = "country period table.csv")
 
 
 continent_manifest_supplementary <- metadata |>
@@ -193,12 +195,13 @@ continent_manifest_supplementary <- metadata |>
   tally() |>
   pivot_wider(names_from = Manifest_category, values_from = n, values_fill = 0) 
 
-write_csv(continent_manifest_supplementary, file = "summarised data/data overview/continent manifest table.csv")
+write_csv(continent_manifest_supplementary, file = "continent manifest table.csv")
 
 
 
 #----------------------------------------- maps -----------------------------------------
 
+setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/raw data/")
 
 # initialise map and removing antarctica
 world_map <- map_data("world")
@@ -387,7 +390,7 @@ graph_dataset$vaccine <- ifelse(graph_dataset$serotype_clean %in% c(pcv7_serotyp
 
 #----------------------------------------- year/manifest plot ----------------------------------------
 
-
+setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/")
 
 # table with continent manifestation for plotting
 continent_year_tally <- metadata |>
@@ -1260,10 +1263,11 @@ proportion_plot <- analysis_proportion_df |>
     panel.border = element_blank()
   )
 
-ggsave(proportion_plot, filename = paste("Proportion/overview figure/",t,".svg"), dpi = 320, width = 53.58, height = 25.91, units = "cm")
+ggsave(proportion_plot, filename = paste0("Proportion/overview figure/",t,".svg"), dpi = 320, width = 53.58, height = 25.91, units = "cm")
 
 
 }
+
 
 
 #----------------------------------------- GPSCs driving resistance pre/post PCV10/13 ----------------
@@ -1894,6 +1898,15 @@ nvt_serotypes <- serotype_coverage_vaccine_unique_clean |>
   arrange(desc(n)) 
 
 write_csv(nvt_serotypes, file = "sample figures/nvt serotypes.csv")
+
+
+
+metadata |>
+  filter(resistance_beta_lactam %in% "R" & serotype_clean %in% pcv13_serotypes & vaccine_binom %in% "POSTPCV13") |>
+  group_by(Continent, GPSC, serotype_clean) |>
+  tally() |>
+  view()
+
 
 
 

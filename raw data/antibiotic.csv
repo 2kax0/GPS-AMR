@@ -1,0 +1,15 @@
+﻿antibiotic,antibiotic_tidy,antibiotic_short
+WGS_PEN_SIR_Meningitis,Penicillin,PEN
+WGS_AMO_SIR,Amoxicillin,AMO
+WGS_TAX_SIR_Meningitis,Cefotaxime,TAX
+WGS_CFT_SIR_Meningitis,Ceftriaxone,CFT
+WGS_MER_SIR,Meropenem,MER
+WGS_CFX_SIR,Cefuroxime,CFX
+WGS_ERY_SIR,Erythromycin,ERY
+WGS_CLI_SIR,Clindamycin,CLI
+WGS_COT_SIR,Co-trimoxazole,COT
+WGS_TET_SIR,Tetracycline,TET
+WGS_CHL_SIR,Chloramphenicol,CHL
+WGS_RIF_SIR,Rifampin,RIF
+WGS_KAN_SIR,Kanamycin,KAN
+MDR,MDR,MDR
