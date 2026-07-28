@@ -1,0 +1,16 @@
+Age_category,WGS_KAN_SIR,Manifest_category_tidy,n.x,n.y
+< 5,S,Carriage,5807,16430
+< 5,S,Diseased carriage,522,16430
+< 5,S,IPD,9437,16430
+< 5,S,Non-invasive disease,305,16430
+< 5,S,Unknown,359,16430
+>=5 - <=65,S,Carriage,1676,20139
+>=5 - <=65,S,Diseased carriage,95,20139
+>=5 - <=65,S,IPD,17891,20139
+>=5 - <=65,S,Non-invasive disease,62,20139
+>=5 - <=65,S,Unknown,415,20139
+> 65,S,Carriage,32,2711
+> 65,S,Diseased carriage,20,2711
+> 65,S,IPD,2300,2711
+> 65,S,Non-invasive disease,18,2711
+> 65,S,Unknown,341,2711

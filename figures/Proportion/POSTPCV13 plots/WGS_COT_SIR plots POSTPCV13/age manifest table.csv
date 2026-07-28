@@ -1,0 +1,37 @@
+Age_category,WGS_COT_SIR,Manifest_category_tidy,n.x,n.y
+< 5,S,Carriage,298,4827
+< 5,S,Diseased carriage,24,4827
+< 5,S,IPD,1444,4827
+< 5,S,Unknown,24,4827
+< 5,I,Carriage,211,4827
+< 5,I,Diseased carriage,19,4827
+< 5,I,IPD,552,4827
+< 5,I,Non-invasive disease,3,4827
+< 5,I,Unknown,12,4827
+< 5,R,Carriage,1247,4827
+< 5,R,Diseased carriage,71,4827
+< 5,R,IPD,890,4827
+< 5,R,Unknown,32,4827
+>=5 - <=65,S,Carriage,132,15852
+>=5 - <=65,S,Diseased carriage,22,15852
+>=5 - <=65,S,IPD,12114,15852
+>=5 - <=65,S,Non-invasive disease,3,15852
+>=5 - <=65,S,Unknown,42,15852
+>=5 - <=65,I,Carriage,84,15852
+>=5 - <=65,I,Diseased carriage,9,15852
+>=5 - <=65,I,IPD,1419,15852
+>=5 - <=65,I,Non-invasive disease,4,15852
+>=5 - <=65,I,Unknown,20,15852
+>=5 - <=65,R,Carriage,349,15852
+>=5 - <=65,R,Diseased carriage,8,15852
+>=5 - <=65,R,IPD,1590,15852
+>=5 - <=65,R,Non-invasive disease,5,15852
+>=5 - <=65,R,Unknown,51,15852
+> 65,S,IPD,988,1361
+> 65,S,Unknown,23,1361
+> 65,I,IPD,119,1361
+> 65,I,Non-invasive disease,2,1361
+> 65,I,Unknown,10,1361
+> 65,R,IPD,196,1361
+> 65,R,Non-invasive disease,3,1361
+> 65,R,Unknown,20,1361

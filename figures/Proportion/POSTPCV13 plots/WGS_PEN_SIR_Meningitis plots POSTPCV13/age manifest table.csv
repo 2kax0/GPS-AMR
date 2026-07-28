@@ -1,0 +1,25 @@
+Age_category,WGS_PEN_SIR_Meningitis,Manifest_category_tidy,n.x,n.y
+< 5,S,Carriage,973,4833
+< 5,S,Diseased carriage,32,4833
+< 5,S,IPD,2013,4833
+< 5,S,Unknown,27,4833
+< 5,R,Carriage,785,4833
+< 5,R,Diseased carriage,82,4833
+< 5,R,IPD,877,4833
+< 5,R,Non-invasive disease,3,4833
+< 5,R,Unknown,41,4833
+>=5 - <=65,S,Carriage,454,15851
+>=5 - <=65,S,Diseased carriage,27,15851
+>=5 - <=65,S,IPD,13560,15851
+>=5 - <=65,S,Non-invasive disease,3,15851
+>=5 - <=65,S,Unknown,56,15851
+>=5 - <=65,R,Carriage,112,15851
+>=5 - <=65,R,Diseased carriage,12,15851
+>=5 - <=65,R,IPD,1561,15851
+>=5 - <=65,R,Non-invasive disease,9,15851
+>=5 - <=65,R,Unknown,57,15851
+> 65,S,IPD,1018,1362
+> 65,S,Unknown,23,1362
+> 65,R,IPD,286,1362
+> 65,R,Non-invasive disease,5,1362
+> 65,R,Unknown,30,1362

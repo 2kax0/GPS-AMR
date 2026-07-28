@@ -1,0 +1,31 @@
+Age_category,MDR,Manifest_category_tidy,n.x,n.y
+< 5,S,Carriage,2823,11104
+< 5,S,Diseased carriage,202,11104
+< 5,S,IPD,4464,11104
+< 5,S,Non-invasive disease,42,11104
+< 5,S,Unknown,149,11104
+< 5,R,Carriage,1000,11104
+< 5,R,Diseased carriage,206,11104
+< 5,R,IPD,1819,11104
+< 5,R,Non-invasive disease,260,11104
+< 5,R,Unknown,139,11104
+>=5 - <=65,S,Carriage,839,4215
+>=5 - <=65,S,Diseased carriage,39,4215
+>=5 - <=65,S,IPD,2089,4215
+>=5 - <=65,S,Non-invasive disease,23,4215
+>=5 - <=65,S,Unknown,224,4215
+>=5 - <=65,R,Carriage,266,4215
+>=5 - <=65,R,Diseased carriage,17,4215
+>=5 - <=65,R,IPD,614,4215
+>=5 - <=65,R,Non-invasive disease,27,4215
+>=5 - <=65,R,Unknown,77,4215
+> 65,S,Carriage,14,1316
+> 65,S,Diseased carriage,17,1316
+> 65,S,IPD,779,1316
+> 65,S,Non-invasive disease,5,1316
+> 65,S,Unknown,223,1316
+> 65,R,Carriage,18,1316
+> 65,R,Diseased carriage,3,1316
+> 65,R,IPD,184,1316
+> 65,R,Non-invasive disease,8,1316
+> 65,R,Unknown,65,1316

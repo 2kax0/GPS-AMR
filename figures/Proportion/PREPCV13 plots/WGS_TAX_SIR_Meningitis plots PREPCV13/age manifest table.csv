@@ -1,0 +1,43 @@
+Age_category,WGS_TAX_SIR_Meningitis,Manifest_category_tidy,n.x,n.y
+< 5,S,Carriage,3611,11079
+< 5,S,Diseased carriage,337,11079
+< 5,S,IPD,5332,11079
+< 5,S,Non-invasive disease,75,11079
+< 5,S,Unknown,260,11079
+< 5,I,Carriage,158,11079
+< 5,I,Diseased carriage,58,11079
+< 5,I,IPD,722,11079
+< 5,I,Non-invasive disease,51,11079
+< 5,I,Unknown,15,11079
+< 5,R,Carriage,46,11079
+< 5,R,Diseased carriage,11,11079
+< 5,R,IPD,217,11079
+< 5,R,Non-invasive disease,176,11079
+< 5,R,Unknown,10,11079
+>=5 - <=65,S,Carriage,965,4205
+>=5 - <=65,S,Diseased carriage,52,4205
+>=5 - <=65,S,IPD,2436,4205
+>=5 - <=65,S,Non-invasive disease,35,4205
+>=5 - <=65,S,Unknown,252,4205
+>=5 - <=65,I,Carriage,133,4205
+>=5 - <=65,I,IPD,208,4205
+>=5 - <=65,I,Non-invasive disease,7,4205
+>=5 - <=65,I,Unknown,43,4205
+>=5 - <=65,R,Carriage,5,4205
+>=5 - <=65,R,Diseased carriage,3,4205
+>=5 - <=65,R,IPD,53,4205
+>=5 - <=65,R,Non-invasive disease,8,4205
+>=5 - <=65,R,Unknown,5,4205
+> 65,S,Carriage,26,1315
+> 65,S,Diseased carriage,19,1315
+> 65,S,IPD,860,1315
+> 65,S,Non-invasive disease,8,1315
+> 65,S,Unknown,252,1315
+> 65,I,Carriage,6,1315
+> 65,I,IPD,83,1315
+> 65,I,Non-invasive disease,1,1315
+> 65,I,Unknown,32,1315
+> 65,R,Diseased carriage,1,1315
+> 65,R,IPD,19,1315
+> 65,R,Non-invasive disease,4,1315
+> 65,R,Unknown,4,1315
