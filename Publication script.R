@@ -64,6 +64,9 @@ metadata$Continent <- ifelse(metadata$Continent %in% "CENTRAL AMERICA", "LATIN A
 metadata <- metadata |>
   filter(Year > 1989)
 
+# continent tidying
+metadata$Continent <- str_to_title(metadata$Continent)
+
 # country name tidying
 metadata$Country <- str_to_title(metadata$Country)
 
@@ -106,7 +109,7 @@ serotype_colors_vector <- setNames(metadata$In_silico_serotype__colour, metadata
 ### kanamycin resistance
 metadata <- metadata |>
   mutate(
-    WGS_KAN_SIR = ifelse(startsWith(Other, "APH(3')_III"), "R", "S")
+    WGS_KAN_SIR = ifelse(startsWith(Other, "APH3PRIMEIII"), "R", "S")
   ) |>
   relocate(WGS_KAN_SIR, .after = WGS_VAN_SIR)
 
@@ -461,13 +464,13 @@ write_csv(continent_manifest_table, file = "summarised data/data overview/contin
 # join serotype/gpsc table for CLI, COT, ERY, PEN, RIF, TET
 antibiotic <- c("WGS_PEN_SIR_Meningitis", "WGS_AMO_SIR", "WGS_TAX_SIR_Meningitis", "WGS_CFT_SIR_Meningitis",
                 "WGS_MER_SIR", "WGS_CFX_SIR", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR",
-                "WGS_CHL_SIR", "MDR")
+                "WGS_CHL_SIR", "WGS_RIF_SIR", "WGS_KAN_SIR", "MDR")
 
-antibiotic_join <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR", "WGS_CHL_SIR", "MDR")
+antibiotic_join <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "WGS_TET_SIR", "WGS_CHL_SIR", "WGS_RIF_SIR", "WGS_KAN_SIR", "MDR")
 
 antibiotic_diverse_serotype <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_TET_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "MDR")
 
-Continent <- c("AFRICA", "NORTH AMERICA", "SOUTH AMERICA", "EUROPE", "ASIA", "OCEANIA")
+continent <- c("Africa", "North America", "South America", "Oceania", "Asia", "Europe")
 
 period <- c("PREPCV13", "POSTPCV13")
 
@@ -478,6 +481,7 @@ setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/figures")
 
 dir.create("Proportion")
 
+
 analysis_proportion_df <- data.frame()
 analysis_proportion_df_complete <- data.frame()
 
@@ -487,7 +491,7 @@ for(p in period){
   metadata_period <- metadata |>
     filter(vaccine_binom %in% p)
   
-  maindir <- paste0("Proportion",p," plots")
+  maindir <- paste0("/",p," plots")
   
   dir.create(maindir)
   
@@ -497,7 +501,7 @@ for(p in period){
   tidy_dataset <- metadata_period |> filter(!!((sym(i))) %in% c("S", "I", "R") & !Country %in% c("France", "Spain"))
   
   ### create new directory for each looped variable
-  newdir <- paste0("Proportion", maindir,"/", i, " plots ", p)
+  newdir <- paste0(maindir,"/", i, " plots ", p)
 
   dir.create(newdir)
   
@@ -530,7 +534,7 @@ for(p in period){
   join <- left_join(age_tally, total_tally, by = "Age_category")
   
   ### define path to save csv
-  age_manifest_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/age manifest table.csv", sep = ""), fsep = "/")
+  age_manifest_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "Proportion", paste(newdir, "/age manifest table.csv", sep = ""), fsep = "/")
   
   ### csv file for number of resistant isolates in each age group for each disease manifestation
   write_csv(join, file = age_manifest_path)
@@ -702,7 +706,7 @@ for(p in period){
       plot.margin = margin(-20, 0, 0, 10)
     ) 
   
-  SIR_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/SIR table.csv", sep = ""), fsep = "/")
+  SIR_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "Proportion", paste(newdir, "/SIR table.csv", sep = ""), fsep = "/")
   write_csv(pivot_plot, file = SIR_path)
   
   map_manifest <- ggarrange(plot, age_manifest, widths = c(1.5, 1.25), heights = c(1, 1), labels = c("(a)", "(b)"), label.y = 1.01, font.label=list(color="black",size=12), hjust = c(0.5,0,0)) +
@@ -890,7 +894,7 @@ for(p in period){
   
   
   
-  full_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/full plot.svg", sep = ""), fsep = "/")
+  full_plot_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "Proportion", paste(newdir, "/full plot.svg", sep = ""), fsep = "/")
   
   ggsave(full_plot, filename = full_plot_path, dpi = 320, width = 26.58, height = 16.91, units = "cm")
 
@@ -909,148 +913,162 @@ for(p in period){
   
   #forest plot for resistance in north american countries
   NorthAmerica <- complete |>
-    filter(Continent %in% "NORTH AMERICA") |>
+    filter(Continent %in% "North America") |>
     group_by(Country, !!sym((i))) |>
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
-  if(!"R" %in% names(NorthAmerica)) {NorthAmerica$R <- 0
-  NorthAmerica$total <- rowSums(NorthAmerica[, !colnames(NorthAmerica) %in% "Country"], na.rm = TRUE)
-  NorthAmerica[is.na(NorthAmerica)] <- 0
-  nameta <- metaprop(R, total, data = NorthAmerica)
+  
+  if(nrow(NorthAmerica) > 0){
+    if(!"R" %in% names(NorthAmerica)) {NorthAmerica$R <- 0
+    NorthAmerica$total <- rowSums(NorthAmerica[, !colnames(NorthAmerica) %in% "Country"], na.rm = TRUE)
+    NorthAmerica[is.na(NorthAmerica)] <- 0
+    nameta <- metaprop(R, total, data = NorthAmerica)
+    }
+  
+    else NorthAmerica$total <- rowSums(NorthAmerica[, !colnames(NorthAmerica) %in% "Country"], na.rm = TRUE)
+    NorthAmerica[is.na(NorthAmerica)] <- 0
+    nameta <- metaprop(R, total, data = NorthAmerica)
+  
+    svg(file = napath, width = 11, height = 3)
+    forest(nameta, comb.fixed = nameta$comb.fixed, comb.random = nameta$comb.random, 
+          overall = TRUE, studlab = NorthAmerica$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+    dev.off()
   }
-  
-  else NorthAmerica$total <- rowSums(NorthAmerica[, !colnames(NorthAmerica) %in% "Country"], na.rm = TRUE)
-  NorthAmerica[is.na(NorthAmerica)] <- 0
-  nameta <- metaprop(R, total, data = NorthAmerica)
-  
-  svg(file = napath, width = 11, height = 3)
-  forest(nameta, comb.fixed = nameta$comb.fixed, comb.random = nameta$comb.random, 
-         overall = TRUE, studlab = NorthAmerica$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
-  dev.off()
-  
   
   #South america
   SouthAmerica <- complete |>
-    filter(Continent %in% "SOUTH AMERICA") |>
+    filter(Continent %in% "South America") |>
     group_by(Country, !!sym((i))) |>
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
   lapath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/la forest.svg", sep = ""), fsep = "/")
   
-  if(!"R" %in% names(SouthAmerica)) {SouthAmerica$R <- 0
-  SouthAmerica$total <- rowSums(SouthAmerica[, !colnames(SouthAmerica) %in% "Country"], na.rm = TRUE)
-  SouthAmerica[is.na(SouthAmerica)] <- 0
-  lameta <- metaprop(R, total, data = SouthAmerica)
-  }
   
-  else SouthAmerica$total <- rowSums(SouthAmerica[, !colnames(SouthAmerica) %in% "Country"], na.rm = TRUE)
-  SouthAmerica[is.na(SouthAmerica)] <- 0
-  lameta <- metaprop(R, total, data = SouthAmerica)
+  if(nrow(SouthAmerica) > 0){
+    if(!"R" %in% names(SouthAmerica)) {SouthAmerica$R <- 0
+    SouthAmerica$total <- rowSums(SouthAmerica[, !colnames(SouthAmerica) %in% "Country"], na.rm = TRUE)
+    SouthAmerica[is.na(SouthAmerica)] <- 0
+    lameta <- metaprop(R, total, data = SouthAmerica)
+    }
   
-  svg(file = lapath, width = 11, height = 3)
-  forest(lameta, comb.fixed = lameta$comb.fixed, comb.random = lameta$comb.random, 
-         overall = TRUE, studlab = SouthAmerica$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
-  dev.off()
+    else SouthAmerica$total <- rowSums(SouthAmerica[, !colnames(SouthAmerica) %in% "Country"], na.rm = TRUE)
+    SouthAmerica[is.na(SouthAmerica)] <- 0
+    lameta <- metaprop(R, total, data = SouthAmerica)
   
+    svg(file = lapath, width = 11, height = 3)
+    forest(lameta, comb.fixed = lameta$comb.fixed, comb.random = lameta$comb.random, 
+          overall = TRUE, studlab = SouthAmerica$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+    dev.off()
+    }
   
   #europe
   Europe <- complete |>
-    filter(Continent %in% "EUROPE") |>
+    filter(Continent %in% "Europe") |>
     group_by(Country, !!sym((i))) |>
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
   eupath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/eu forest.svg", sep = ""), fsep = "/")
   
-  if(!"R" %in% names(Europe)){Europe$R <- 0
-  Europe$total <- rowSums(Europe[, !colnames(Europe) %in% "Country"], na.rm = TRUE)
-  Europe[is.na(Europe)] <- 0
-  eumeta <- metaprop(R, total, data = Europe)
-  }
   
-  else Europe$total <- rowSums(Europe[, !colnames(Europe) %in% "Country"], na.rm = TRUE)
-  Europe[is.na(Europe)] <- 0
-  eumeta <- metaprop(R, total, data = Europe)
+  if(nrow(Europe)){
+    if(!"R" %in% names(Europe)){Europe$R <- 0
+    Europe$total <- rowSums(Europe[, !colnames(Europe) %in% "Country"], na.rm = TRUE)
+    Europe[is.na(Europe)] <- 0
+    eumeta <- metaprop(R, total, data = Europe)
+    }
   
-  svg(file = eupath, width = 11, height = 6)
-  forest(eumeta, comb.fixed = eumeta$comb.fixed, comb.random = eumeta$comb.random, 
-         overall = TRUE, studlab = Europe$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
-  dev.off()
+    else Europe$total <- rowSums(Europe[, !colnames(Europe) %in% "Country"], na.rm = TRUE)
+    Europe[is.na(Europe)] <- 0
+    eumeta <- metaprop(R, total, data = Europe)
+  
+    svg(file = eupath, width = 11, height = 6)
+    forest(eumeta, comb.fixed = eumeta$comb.fixed, comb.random = eumeta$comb.random, 
+          overall = TRUE, studlab = Europe$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+    dev.off()
+    }
   
   #asia
   Asia <- complete |>
-    filter(Continent %in% "ASIA") |>
+    filter(Continent %in% "Asia") |>
     group_by(Country, !!sym((i))) |>
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
   aspath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/as forest.svg", sep = ""), fsep = "/")
   
-  if(!"R" %in% names(Asia)){Asia$R <- 0
-  Asia$total <- rowSums(Asia[, !colnames(Asia) %in% "Country"], na.rm = TRUE)
-  Asia[is.na(Asia)] <- 0
-  asmeta <- metaprop(R, total, data = Asia)
+  
+  if(nrow(Asia) > 0){
+    if(!"R" %in% names(Asia)){Asia$R <- 0
+    Asia$total <- rowSums(Asia[, !colnames(Asia) %in% "Country"], na.rm = TRUE)
+    Asia[is.na(Asia)] <- 0
+    asmeta <- metaprop(R, total, data = Asia)
+    }
+  
+    else Asia$total <- rowSums(Asia[, !colnames(Asia) %in% "Country"], na.rm = TRUE)
+    Asia[is.na(Asia)] <- 0
+    asmeta <- metaprop(R, total, data = Asia)
+  
+    svg(file = aspath, width = 11, height = 6)
+    forest(asmeta, comb.fixed = asmeta$comb.fixed, comb.random = asmeta$comb.random, 
+          overall = TRUE, studlab = Asia$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+    dev.off()
   }
-  
-  else Asia$total <- rowSums(Asia[, !colnames(Asia) %in% "Country"], na.rm = TRUE)
-  Asia[is.na(Asia)] <- 0
-  asmeta <- metaprop(R, total, data = Asia)
-  
-  svg(file = aspath, width = 11, height = 6)
-  forest(asmeta, comb.fixed = asmeta$comb.fixed, comb.random = asmeta$comb.random, 
-         overall = TRUE, studlab = Asia$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
-  dev.off()
   
   #africa
   Africa <- complete |>
-    filter(Continent %in% "AFRICA") |>
+    filter(Continent %in% "Africa") |>
     group_by(Country, !!sym((i))) |>
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
   afpath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/af forest.svg", sep = ""), fsep = "/")
   
-  if(!"R" %in% names(Africa)){Africa$R <- 0
-  Africa$total <- rowSums(Africa[, !colnames(Africa) %in% "Country"], na.rm = TRUE)
-  Africa[is.na(Africa)] <- 0
-  afmeta <- metaprop(R, total, data = Africa)
+  
+  if(nrow(Africa) > 0){
+    if(!"R" %in% names(Africa)){Africa$R <- 0
+    Africa$total <- rowSums(Africa[, !colnames(Africa) %in% "Country"], na.rm = TRUE)
+    Africa[is.na(Africa)] <- 0
+    afmeta <- metaprop(R, total, data = Africa)
+    }
+  
+    else Africa$total <- rowSums(Africa[, !colnames(Africa) %in% "Country"], na.rm = TRUE)
+    Africa[is.na(Africa)] <- 0
+    afmeta <- metaprop(R, total, data = Africa)
+  
+    svg(file = afpath, width = 11, height = 6)
+    forest(afmeta, comb.fixed = afmeta$comb.fixed, comb.random = afmeta$comb.random, 
+          overall = TRUE, studlab = Africa$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+    dev.off()
   }
-  
-  else Africa$total <- rowSums(Africa[, !colnames(Africa) %in% "Country"], na.rm = TRUE)
-  Africa[is.na(Africa)] <- 0
-  afmeta <- metaprop(R, total, data = Africa)
-  
-  svg(file = afpath, width = 11, height = 6)
-  forest(afmeta, comb.fixed = afmeta$comb.fixed, comb.random = afmeta$comb.random, 
-         overall = TRUE, studlab = Africa$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
-  dev.off()
   
   #oceania
   Oceania <- complete |>
-    filter(Continent %in% "OCEANIA") |>
+    filter(Continent %in% "Oceania") |>
     group_by(Country, !!sym((i))) |>
     tally() |>
     pivot_wider(names_from = !!sym((i)), values_from = n)
   
   ocepath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/oce forest.svg", sep = ""), fsep = "/")
   
-  if(!"R" %in% names(Oceania)){Oceania$R <- 0
-  Oceania$total <- rowSums(Oceania[, !colnames(Oceania) %in% "Country"], na.rm = TRUE)
-  Oceania[is.na(Oceania)] <- 0
-  ocemeta <- metaprop(R, total, data = Oceania) 
+  if(nrow(Oceania) > 0){
+    if(!"R" %in% names(Oceania)){Oceania$R <- 0
+    Oceania$total <- rowSums(Oceania[, !colnames(Oceania) %in% "Country"], na.rm = TRUE)
+    Oceania[is.na(Oceania)] <- 0
+    ocemeta <- metaprop(R, total, data = Oceania) 
+    }
+  
+    else Oceania$total <- rowSums(Oceania[, !colnames(Oceania) %in% "Country"], na.rm = TRUE)
+    Oceania[is.na(Oceania)] <- 0
+    ocemeta <- metaprop(R, total, data = Oceania)
+  
+    svg(file = ocepath, width = 11, height = 2.5)
+    forest(ocemeta, comb.fixed = ocemeta$comb.fixed, comb.random = ocemeta$comb.random, 
+          overall = TRUE, studlab = Oceania$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+    dev.off()
   }
-  
-  else Oceania$total <- rowSums(Oceania[, !colnames(Oceania) %in% "Country"], na.rm = TRUE)
-  Oceania[is.na(Oceania)] <- 0
-  ocemeta <- metaprop(R, total, data = Oceania)
-  
-  svg(file = ocepath, width = 11, height = 2.5)
-  forest(ocemeta, comb.fixed = ocemeta$comb.fixed, comb.random = ocemeta$comb.random, 
-         overall = TRUE, studlab = Oceania$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
-  dev.off()
-  
   
   ### overview table of proportion resistance in each continent
   
@@ -1149,7 +1167,7 @@ for(p in period){
   df_list <- list(WGS_AMO_SIR_proportion, WGS_PEN_SIR_Meningitis_proportion, WGS_CFX_SIR_proportion,
                   WGS_TAX_SIR_Meningitis_proportion, WGS_CFT_SIR_Meningitis_proportion, WGS_MER_SIR_proportion,
                   WGS_CHL_SIR_proportion, WGS_CLI_SIR_proportion, WGS_ERY_SIR_proportion,
-                  WGS_TET_SIR_proportion, WGS_COT_SIR_proportion, MDR_proportion)
+                  WGS_TET_SIR_proportion, WGS_COT_SIR_proportion, WGS_RIF_SIR_proportion, WGS_KAN_SIR_proportion, MDR_proportion)
   
   # join all tables together
   complete_proportion_table <- df_list |>
@@ -1157,10 +1175,10 @@ for(p in period){
   
   colnames(complete_proportion_table) <- c("Continent", "Amoxicillin", "Penicillin", "Cefuroxime", "Cefotaxime", 
                                            "Ceftriaxone", "Meropenem", "Chloramphenicol", "Clindamycin", "Erythromycin", 
-                                           "Tetracycline", "Co-trimoxazole", "MDR")
+                                           "Tetracycline", "Co-trimoxazole", "Rifampin", "Kanamycin", "MDR")
   
   # save proportion table for each antibiotic into their respective folder
-  complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir,"/complete proportion.csv", sep = ""), fsep = "/")
+  complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "Proportion", paste(newdir,"/complete proportion.csv", sep = ""), fsep = "/")
   
   write_csv(complete_proportion_table, file = complete_proportion_path)
   
@@ -1175,66 +1193,17 @@ analysis_proportion_df <- left_join(analysis_proportion_df, antibiotic_tidying, 
   select(-c(antibiotic, antibiotic_tidy))
 
 # relevel antibiotic names
-analysis_proportion_df$antibiotic_short <- factor(analysis_proportion_df$antibiotic_short, levels = c("AMO", "PEN", "CFX", "TAX", "CFT", "MER", "CHL", "CLI", "ERY", "TET", "COT", "MDR"))
+analysis_proportion_df$antibiotic_short <- factor(analysis_proportion_df$antibiotic_short, levels = c("PEN", "AMO", "CFX", "CFT", "TAX", "MER", "ERY", "CLI", "COT", "TET", "CHL", "RIF", "KAN", "MDR"))
 
 
-usp_df <- analysis_proportion_df |>
-  select(c(Continent, Percentage, n, period, antibiotic_short)) |>
-  mutate(
-    R_theoretical = round(Percentage * n),
-    S_theoretical = round((1 - Percentage) * n)
-  )
-
-
-antibiotic_list <- unique(usp_df$antibiotic_short)
-
-continent_list <- c("Africa", "North America", "South America", "Oceania", "Asia", "Europe")
-
-amr_usp <- data.frame()
-
-
-
-
-for(i in antibiotic_list){
-  
-  for(t in continent_list){
-  contingency_table <- usp_df |>
-    filter(Continent %in% t & antibiotic_short %in% i) |>
-    select(c(period, R_theoretical, S_theoretical)) |>
-    pivot_longer(names_to = "Resistance", values_to = "n", cols = c(R_theoretical, S_theoretical)) |>
-    pivot_wider(names_from = period, values_from = n) |>
-    select(-Resistance)
-  
-  USP <- USP.test(contingency_table)
-  
-  row_for_usp <- usp_df |>
-    filter(Continent %in% t & antibiotic_short %in% i) |>
-    select(c(Continent, Percentage, period)) |>
-    pivot_wider(names_from = period, values_from = Percentage) |>
-    mutate(
-      antibiotic_short = i,
-      p.value = USP$p.value
-      ) 
-  
-  amr_usp <- rbind(row_for_usp, amr_usp)
-  
-  }
-}
-
-amr_usp$adjusted_p <- p.adjust(amr_usp$p.value, "BH", n = nrow(amr_usp))
-
-for(t in continent_list){
-
-amr_usp_plotting <- amr_usp |>
-  filter(Continent %in% t)
+for(t in continent){
 
 # summary figure for proportion analysis
 proportion_plot <- analysis_proportion_df |>
-  filter(Continent %in% t & !antibiotic_short %in% c("KAN", "RIF")) |>
+  filter(Continent %in% t & !antibiotic_short %in% "RIF") |>
   ggplot(aes(x = period, y = Percentage*100, group = antibiotic_short)) +
   geom_col(width = 0.8, stat = "identity", position = position_dodge(width = 0.8), aes(fill = period)) +
   geom_errorbar(aes(ymin = Lower*100, ymax = Upper*100), position = position_dodge(width = 0.8)) +
-  geom_text(data = amr_usp_plotting, aes(label = paste0("USP\n p=",round(adjusted_p,3)), x = 1.5, y = 100), size = 8) +
   facet_wrap(~antibiotic_short, nrow = 1, strip.position = "bottom") +
   scale_fill_manual(values = c("#E1BE6A", "#40B0A6"),
                     labels = c("Pre-PCV13", "Post-PCV13")) +
@@ -1263,11 +1232,12 @@ proportion_plot <- analysis_proportion_df |>
     panel.border = element_blank()
   )
 
-ggsave(proportion_plot, filename = paste0("Proportion/overview figure/",t,".svg"), dpi = 320, width = 53.58, height = 25.91, units = "cm")
+ggsave(proportion_plot, filename = paste0("Proportion/overview figure/",t,".svg"), dpi = 320, width = 43.58, height = 18.91, units = "cm")
 
 
 }
 
+write_csv(analysis_proportion_df, file = "Proportion/overview figure/proportion reference.csv")
 
 
 #----------------------------------------- GPSCs driving resistance pre/post PCV10/13 ----------------
@@ -1570,6 +1540,7 @@ ggsave(pre_post_plot, filename = pre_post_plot_path, dpi = 320, width = 30.58, h
 
 
 
+
 #------------------------------ Potential vaccine coverage and PCV13 serotype persistence post vaccine implementation ----------------------------
 
 setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR")
@@ -1656,11 +1627,10 @@ serotype_coverage_vaccine_unique <- serotype_coverage_vaccine |>
 
 serotype_coverage_vaccine_unique_clean <- left_join(serotype_coverage_vaccine_unique, antibiotic_tidying, by = "antibiotic")
 
-serotype_coverage_vaccine_unique_clean$antibiotic_tidy <- factor(serotype_coverage_vaccine_unique_clean$antibiotic_tidy, 
-                                                                 levels = c("Penicillin", "Amoxicillin", "Cefuroxime",
-                                                                            "Ceftriaxone", "Cefotaxime", "Meropenem",
-                                                                            "Erythromycin", "Clindamycin", "Co-trimoxazole",
-                                                                            "Tetracycline", "Chloramphenicol", "Rifampin", "Kanamycin", "MDR"))
+serotype_coverage_vaccine_unique_clean$antibiotic_short <- factor(serotype_coverage_vaccine_unique_clean$antibiotic_short, 
+                                                                  levels = c("PEN", "AMO", "CFX", "CFT", "TAX", 
+                                                                             "MER", "ERY", "CLI", "COT", "TET", 
+                                                                             "CHL", "RIF", "KAN", "MDR"))
 
 
 # set colours
@@ -1696,8 +1666,12 @@ serotype_coverage_vaccine_unique_clean_coloured$PCV13_vaccine <- factor(serotype
                                                                           levels = c("NVT", "1", "3", "4", "5", "6A", "6B", "7F", "9V", "14", "18C", "19A", "19F", "23F"))
 
 
+
+serotype_coverage_vaccine_unique_clean_coloured <- serotype_coverage_vaccine_unique_clean_coloured |>
+  filter(!antibiotic_short %in% "RIF")
+
 pcv13_coverage_figure <- serotype_coverage_vaccine_unique_clean_coloured |>
-  ggplot(aes(x = antibiotic_tidy, y = n, fill = PCV13_vaccine, colour = PCV13_vaccine)) +
+  ggplot(aes(x = antibiotic_short, y = n, fill = PCV13_vaccine, colour = PCV13_vaccine)) +
   geom_bar(position = position_stack(), stat = "identity") +
   facet_wrap(~Continent, ncol = 3, scales = "free_y")+
   scale_fill_manual(name = "PCV13 (Pfizer) \nserotypes",
@@ -1711,12 +1685,12 @@ pcv13_coverage_figure <- serotype_coverage_vaccine_unique_clean_coloured |>
   ) +
   theme(
     title = element_text(size = 24),
-    axis.text.x = element_text(size = 18, angle = 45, hjust = 1),
+    axis.text.x = element_text(size = 18, angle = 45, hjust = 1, face = "bold"),
     axis.text.y = element_text(size = 18),
     axis.title = element_text(size = 22), 
     legend.title = element_text(size = 22),
-    legend.text = element_text(size = 14),
-    legend.key.size = unit(0.8, "cm"),
+    legend.text = element_text(size = 18),
+    legend.key.size = unit(1, "cm"),
     strip.text = element_text(size = 16),
     legend.background = element_blank()
   )
@@ -1727,7 +1701,7 @@ serotype_coverage_vaccine_unique_clean_coloured$unique_serotype <- factor(seroty
                                                                              levels = c("NVT", "PCV31_VAXCYTE", "PCV24_GSK", "PCV21_SK_SANOFI", "PCV20_PFIZER", "PCV15_MERCK", "PCV13_PFIZER"))
 
 potential_coverage_plot <- serotype_coverage_vaccine_unique_clean_coloured |>
-  ggplot(aes(x = antibiotic_tidy, y = n, fill = unique_serotype, colour = unique_serotype)) +
+  ggplot(aes(x = antibiotic_short, y = n, fill = unique_serotype, colour = unique_serotype)) +
   geom_bar(position = position_stack(), stat = "identity") +
   facet_wrap(~Continent, ncol = 3, scales = "free_y")+
   scale_fill_manual(name = "Vaccine \nserotypes",
@@ -1742,12 +1716,12 @@ potential_coverage_plot <- serotype_coverage_vaccine_unique_clean_coloured |>
   ) +
   theme(
     title = element_text(size = 24),
-    axis.text.x = element_text(size = 18, angle = 45, hjust = 1),
+    axis.text.x = element_text(size = 18, angle = 45, hjust = 1, face = "bold"),
     axis.text.y = element_text(size = 18),
     axis.title = element_text(size = 22), 
     legend.title = element_text(size = 22),
-    legend.text = element_text(size = 14),
-    legend.key.size = unit(0.8, "cm"),
+    legend.text = element_text(size = 18),
+    legend.key.size = unit(1, "cm"),
     strip.text = element_text(size = 16),
     legend.background = element_blank()
   )
@@ -1760,7 +1734,7 @@ pcv25_potential_coverage_plot <- serotype_coverage_vaccine_unique_clean_coloured
   mutate(
     PCV25_colour = ifelse(PCV25_vaccine %in% "NVT", "#808080", "#5D3A9B")
   ) |>
-  ggplot(aes(x = antibiotic_tidy, y = n, fill = PCV25_vaccine, colour = PCV25_vaccine)) +
+  ggplot(aes(x = antibiotic_short, y = n, fill = PCV25_vaccine, colour = PCV25_vaccine)) +
   geom_bar(position = position_stack(), stat = "identity") +
   facet_wrap(~Continent, ncol = 3, scales = "free_y") +
   scale_fill_manual(name = "Vaccine \nserotypes",
@@ -1775,12 +1749,12 @@ pcv25_potential_coverage_plot <- serotype_coverage_vaccine_unique_clean_coloured
   ) +
   theme(
     title = element_blank(),
-    axis.text.x = element_text(size = 18, angle = 45, hjust = 1),
+    axis.text.x = element_text(size = 18, angle = 45, hjust = 1, face = "bold"),
     axis.text.y = element_text(size = 18),
     axis.title = element_text(size = 22), 
     legend.title = element_text(size = 22),
-    legend.text = element_text(size = 14),
-    legend.key.size = unit(0.8, "cm"),
+    legend.text = element_text(size = 18),
+    legend.key.size = unit(1, "cm"),
     strip.text = element_text(size = 16),
     legend.background = element_blank()
   )
@@ -1796,7 +1770,7 @@ coverage_table <- data.frame()
 cols <- c("PCV31_VAXCYTE", "PCV24_GSK", "PCV21_SK_SANOFI", "PCV20_PFIZER", "PCV15_MERCK", "PCV13_PFIZER") |>
   map_dfr( ~tibble(!!.x := logical() ) )
 
-for(i in Continent){
+for(i in continent){
 coverage_raw <- serotype_coverage_vaccine_unique_clean |>
   filter(Continent %in% i) |>
   select(-Continent) |>
@@ -3935,3 +3909,48 @@ continent_early_pcv13 <- metadata |>
   group_by(Continent) |>
   tally()
 write_csv(continent_early_pcv13, file = "POSTPCV13 plots/continent_early_pcv13.csv")
+
+
+usp_df <- analysis_proportion_df |>
+  select(c(Continent, Percentage, n, period, antibiotic_short)) |>
+  mutate(
+    R_theoretical = round(Percentage * n),
+    S_theoretical = round((1 - Percentage) * n)
+  )
+
+
+# USP
+antibiotic_list <- unique(usp_df$antibiotic_short)
+
+amr_usp <- data.frame()
+
+
+
+
+for(i in antibiotic_list){
+  
+  for(t in continent_list){
+    contingency_table <- usp_df |>
+      filter(Continent %in% t & antibiotic_short %in% i) |>
+      select(c(period, R_theoretical, S_theoretical)) |>
+      pivot_longer(names_to = "Resistance", values_to = "n", cols = c(R_theoretical, S_theoretical)) |>
+      pivot_wider(names_from = period, values_from = n) |>
+      select(-Resistance)
+    
+    USP <- USP.test(contingency_table)
+    
+    row_for_usp <- usp_df |>
+      filter(Continent %in% t & antibiotic_short %in% i) |>
+      select(c(Continent, Percentage, period)) |>
+      pivot_wider(names_from = period, values_from = Percentage) |>
+      mutate(
+        antibiotic_short = i,
+        p.value = USP$p.value
+      ) 
+    
+    amr_usp <- rbind(row_for_usp, amr_usp)
+    
+  }
+}
+
+amr_usp$adjusted_p <- p.adjust(amr_usp$p.value, "BH", n = nrow(amr_usp))
