@@ -1,67 +1,67 @@
 Continent,Country,n
-AFRICA,Angola,24
-AFRICA,Benin,4
-AFRICA,Botswana,8
-AFRICA,Cameroon,29
-AFRICA,Central African Republic,4
-AFRICA,Egypt,34
-AFRICA,Ethiopia,100
-AFRICA,Ghana,82
-AFRICA,Ivory Coast,2
-AFRICA,Kenya,42
-AFRICA,Malawi,1424
-AFRICA,Morocco,48
-AFRICA,Mozambique,179
-AFRICA,Niger,19
-AFRICA,Nigeria,186
-AFRICA,Senegal,47
-AFRICA,South Africa,6592
-AFRICA,The Gambia,2852
-AFRICA,Togo,120
-AFRICA,Tunisia,148
-ASIA,Bangladesh,139
-ASIA,Cambodia,962
-ASIA,China,965
-ASIA,India,587
-ASIA,Israel,1169
-ASIA,Japan,23
-ASIA,Kuwait,1
-ASIA,Malaysia,68
-ASIA,Mongolia,15
-ASIA,Myanmar,57
-ASIA,Nepal,917
-ASIA,Pakistan,286
-ASIA,Qatar,111
-ASIA,Taiwan,164
-ASIA,Thailand,260
-ASIA,Turkey,78
-EUROPE,Belarus,97
-EUROPE,Bulgaria,15
-EUROPE,Czech Republic,29
-EUROPE,Denmark,139
-EUROPE,Finland,35
-EUROPE,Hungary,17
-EUROPE,Ireland,299
-EUROPE,Italy,17
-EUROPE,Latvia,10
-EUROPE,Lithuania,10
-EUROPE,Netherlands,1005
-EUROPE,Norway,2131
-EUROPE,Poland,262
-EUROPE,Portugal,18
-EUROPE,Russian Federation,177
-EUROPE,Slovenia,94
-EUROPE,Sweden,25
-EUROPE,United Kingdom,14590
-NORTH AMERICA,Canada,17
-NORTH AMERICA,Guatemala,1
-NORTH AMERICA,Trinidad And Tobago,97
-NORTH AMERICA,United States,1633
-OCEANIA,Australia,1448
-OCEANIA,New Caledonia,67
-OCEANIA,New Zealand,87
-OCEANIA,Papua New Guinea,168
-SOUTH AMERICA,Argentina,412
-SOUTH AMERICA,Brazil,509
-SOUTH AMERICA,Ecuador,1
-SOUTH AMERICA,Peru,812
+Africa,Angola,24
+Africa,Benin,4
+Africa,Botswana,8
+Africa,Cameroon,29
+Africa,Central African Republic,4
+Africa,Egypt,34
+Africa,Ethiopia,100
+Africa,Ghana,82
+Africa,Ivory Coast,2
+Africa,Kenya,42
+Africa,Malawi,1424
+Africa,Morocco,48
+Africa,Mozambique,179
+Africa,Niger,19
+Africa,Nigeria,186
+Africa,Senegal,47
+Africa,South Africa,6592
+Africa,The Gambia,2852
+Africa,Togo,120
+Africa,Tunisia,148
+Asia,Bangladesh,139
+Asia,Cambodia,962
+Asia,China,965
+Asia,India,587
+Asia,Israel,1169
+Asia,Japan,23
+Asia,Kuwait,1
+Asia,Malaysia,68
+Asia,Mongolia,15
+Asia,Myanmar,57
+Asia,Nepal,917
+Asia,Pakistan,286
+Asia,Qatar,111
+Asia,Taiwan,164
+Asia,Thailand,260
+Asia,Turkey,78
+Europe,Belarus,97
+Europe,Bulgaria,15
+Europe,Czech Republic,29
+Europe,Denmark,139
+Europe,Finland,35
+Europe,Hungary,17
+Europe,Ireland,299
+Europe,Italy,17
+Europe,Latvia,10
+Europe,Lithuania,10
+Europe,Netherlands,1005
+Europe,Norway,2131
+Europe,Poland,262
+Europe,Portugal,18
+Europe,Russian Federation,177
+Europe,Slovenia,94
+Europe,Sweden,25
+Europe,United Kingdom,14590
+North America,Canada,17
+North America,Guatemala,1
+North America,Trinidad And Tobago,97
+North America,United States,1633
+Oceania,Australia,1448
+Oceania,New Caledonia,67
+Oceania,New Zealand,87
+Oceania,Papua New Guinea,168
+South America,Argentina,412
+South America,Brazil,509
+South America,Ecuador,1
+South America,Peru,812

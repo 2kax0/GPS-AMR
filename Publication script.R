@@ -973,7 +973,7 @@ for(p in period){
   eupath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/eu forest.svg", sep = ""), fsep = "/")
   
   
-  if(nrow(Europe)){
+  if(nrow(Europe) > 0){
     if(!"R" %in% names(Europe)){Europe$R <- 0
     Europe$total <- rowSums(Europe[, !colnames(Europe) %in% "Country"], na.rm = TRUE)
     Europe[is.na(Europe)] <- 0

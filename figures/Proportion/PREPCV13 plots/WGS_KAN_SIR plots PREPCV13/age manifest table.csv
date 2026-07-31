@@ -1,16 +1,26 @@
 Age_category,WGS_KAN_SIR,Manifest_category_tidy,n.x,n.y
-< 5,S,Carriage,3823,11104
-< 5,S,Diseased carriage,408,11104
-< 5,S,IPD,6283,11104
-< 5,S,Non-invasive disease,302,11104
-< 5,S,Unknown,288,11104
+< 5,S,Carriage,3820,11104
+< 5,S,Diseased carriage,405,11104
+< 5,S,IPD,6222,11104
+< 5,S,Non-invasive disease,294,11104
+< 5,S,Unknown,280,11104
+< 5,R,Carriage,3,11104
+< 5,R,Diseased carriage,3,11104
+< 5,R,IPD,61,11104
+< 5,R,Non-invasive disease,8,11104
+< 5,R,Unknown,8,11104
 >=5 - <=65,S,Carriage,1105,4215
 >=5 - <=65,S,Diseased carriage,56,4215
->=5 - <=65,S,IPD,2703,4215
->=5 - <=65,S,Non-invasive disease,50,4215
->=5 - <=65,S,Unknown,301,4215
+>=5 - <=65,S,IPD,2684,4215
+>=5 - <=65,S,Non-invasive disease,49,4215
+>=5 - <=65,S,Unknown,296,4215
+>=5 - <=65,R,IPD,19,4215
+>=5 - <=65,R,Non-invasive disease,1,4215
+>=5 - <=65,R,Unknown,5,4215
 > 65,S,Carriage,32,1316
 > 65,S,Diseased carriage,20,1316
-> 65,S,IPD,963,1316
+> 65,S,IPD,953,1316
 > 65,S,Non-invasive disease,13,1316
-> 65,S,Unknown,288,1316
+> 65,S,Unknown,272,1316
+> 65,R,IPD,10,1316
+> 65,R,Unknown,16,1316

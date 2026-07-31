@@ -1,36 +1,36 @@
 Age_category,WGS_TAX_SIR_Meningitis,Manifest_category_tidy,n.x,n.y
-< 5,S,Carriage,1592,4833
-< 5,S,Diseased carriage,75,4833
-< 5,S,IPD,2745,4833
-< 5,S,Non-invasive disease,3,4833
-< 5,S,Unknown,53,4833
-< 5,I,Carriage,134,4833
-< 5,I,Diseased carriage,30,4833
-< 5,I,IPD,96,4833
-< 5,I,Unknown,10,4833
-< 5,R,Carriage,32,4833
-< 5,R,Diseased carriage,9,4833
-< 5,R,IPD,49,4833
-< 5,R,Unknown,5,4833
->=5 - <=65,S,Carriage,562,15851
->=5 - <=65,S,Diseased carriage,34,15851
->=5 - <=65,S,IPD,14936,15851
->=5 - <=65,S,Non-invasive disease,9,15851
->=5 - <=65,S,Unknown,80,15851
->=5 - <=65,I,Carriage,3,15851
->=5 - <=65,I,Diseased carriage,3,15851
->=5 - <=65,I,IPD,143,15851
->=5 - <=65,I,Non-invasive disease,3,15851
->=5 - <=65,I,Unknown,21,15851
->=5 - <=65,R,Carriage,1,15851
->=5 - <=65,R,Diseased carriage,2,15851
->=5 - <=65,R,IPD,42,15851
->=5 - <=65,R,Unknown,12,15851
-> 65,S,IPD,1225,1362
-> 65,S,Non-invasive disease,4,1362
-> 65,S,Unknown,32,1362
-> 65,I,IPD,52,1362
-> 65,I,Non-invasive disease,1,1362
-> 65,I,Unknown,9,1362
-> 65,R,IPD,27,1362
-> 65,R,Unknown,12,1362
+< 5,S,Carriage,1592,4956
+< 5,S,Diseased carriage,75,4956
+< 5,S,IPD,2863,4956
+< 5,S,Non-invasive disease,3,4956
+< 5,S,Unknown,53,4956
+< 5,I,Carriage,134,4956
+< 5,I,Diseased carriage,30,4956
+< 5,I,IPD,100,4956
+< 5,I,Unknown,10,4956
+< 5,R,Carriage,32,4956
+< 5,R,Diseased carriage,9,4956
+< 5,R,IPD,50,4956
+< 5,R,Unknown,5,4956
+>=5 - <=65,S,Carriage,562,16445
+>=5 - <=65,S,Diseased carriage,34,16445
+>=5 - <=65,S,IPD,15504,16445
+>=5 - <=65,S,Non-invasive disease,9,16445
+>=5 - <=65,S,Unknown,80,16445
+>=5 - <=65,I,Carriage,3,16445
+>=5 - <=65,I,Diseased carriage,3,16445
+>=5 - <=65,I,IPD,166,16445
+>=5 - <=65,I,Non-invasive disease,3,16445
+>=5 - <=65,I,Unknown,21,16445
+>=5 - <=65,R,Carriage,1,16445
+>=5 - <=65,R,Diseased carriage,2,16445
+>=5 - <=65,R,IPD,45,16445
+>=5 - <=65,R,Unknown,12,16445
+> 65,S,IPD,1749,1909
+> 65,S,Non-invasive disease,4,1909
+> 65,S,Unknown,32,1909
+> 65,I,IPD,70,1909
+> 65,I,Non-invasive disease,1,1909
+> 65,I,Unknown,9,1909
+> 65,R,IPD,32,1909
+> 65,R,Unknown,12,1909

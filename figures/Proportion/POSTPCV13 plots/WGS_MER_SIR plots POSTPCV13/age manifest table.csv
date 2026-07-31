@@ -1,37 +1,37 @@
 Age_category,WGS_MER_SIR,Manifest_category_tidy,n.x,n.y
-< 5,S,Carriage,1559,4833
-< 5,S,Diseased carriage,72,4833
-< 5,S,IPD,2702,4833
-< 5,S,Non-invasive disease,3,4833
-< 5,S,Unknown,47,4833
-< 5,I,Carriage,149,4833
-< 5,I,Diseased carriage,28,4833
-< 5,I,IPD,113,4833
-< 5,I,Unknown,13,4833
-< 5,R,Carriage,50,4833
-< 5,R,Diseased carriage,14,4833
-< 5,R,IPD,75,4833
-< 5,R,Unknown,8,4833
->=5 - <=65,S,Carriage,560,15851
->=5 - <=65,S,Diseased carriage,34,15851
->=5 - <=65,S,IPD,14881,15851
->=5 - <=65,S,Non-invasive disease,8,15851
->=5 - <=65,S,Unknown,77,15851
->=5 - <=65,I,Carriage,5,15851
->=5 - <=65,I,Diseased carriage,2,15851
->=5 - <=65,I,IPD,176,15851
->=5 - <=65,I,Non-invasive disease,3,15851
->=5 - <=65,I,Unknown,21,15851
->=5 - <=65,R,Carriage,1,15851
->=5 - <=65,R,Diseased carriage,3,15851
->=5 - <=65,R,IPD,64,15851
->=5 - <=65,R,Non-invasive disease,1,15851
->=5 - <=65,R,Unknown,15,15851
-> 65,S,IPD,1208,1362
-> 65,S,Non-invasive disease,4,1362
-> 65,S,Unknown,28,1362
-> 65,I,IPD,64,1362
-> 65,I,Unknown,9,1362
-> 65,R,IPD,32,1362
-> 65,R,Non-invasive disease,1,1362
-> 65,R,Unknown,16,1362
+< 5,S,Carriage,1559,4956
+< 5,S,Diseased carriage,72,4956
+< 5,S,IPD,2820,4956
+< 5,S,Non-invasive disease,3,4956
+< 5,S,Unknown,47,4956
+< 5,I,Carriage,149,4956
+< 5,I,Diseased carriage,28,4956
+< 5,I,IPD,117,4956
+< 5,I,Unknown,13,4956
+< 5,R,Carriage,50,4956
+< 5,R,Diseased carriage,14,4956
+< 5,R,IPD,76,4956
+< 5,R,Unknown,8,4956
+>=5 - <=65,S,Carriage,560,16445
+>=5 - <=65,S,Diseased carriage,34,16445
+>=5 - <=65,S,IPD,15444,16445
+>=5 - <=65,S,Non-invasive disease,8,16445
+>=5 - <=65,S,Unknown,77,16445
+>=5 - <=65,I,Carriage,5,16445
+>=5 - <=65,I,Diseased carriage,2,16445
+>=5 - <=65,I,IPD,201,16445
+>=5 - <=65,I,Non-invasive disease,3,16445
+>=5 - <=65,I,Unknown,21,16445
+>=5 - <=65,R,Carriage,1,16445
+>=5 - <=65,R,Diseased carriage,3,16445
+>=5 - <=65,R,IPD,70,16445
+>=5 - <=65,R,Non-invasive disease,1,16445
+>=5 - <=65,R,Unknown,15,16445
+> 65,S,IPD,1728,1909
+> 65,S,Non-invasive disease,4,1909
+> 65,S,Unknown,28,1909
+> 65,I,IPD,85,1909
+> 65,I,Unknown,9,1909
+> 65,R,IPD,38,1909
+> 65,R,Non-invasive disease,1,1909
+> 65,R,Unknown,16,1909

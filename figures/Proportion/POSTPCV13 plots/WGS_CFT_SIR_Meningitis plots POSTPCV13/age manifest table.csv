@@ -1,36 +1,36 @@
 Age_category,WGS_CFT_SIR_Meningitis,Manifest_category_tidy,n.x,n.y
-< 5,S,Carriage,1575,4833
-< 5,S,Diseased carriage,73,4833
-< 5,S,IPD,2735,4833
-< 5,S,Non-invasive disease,3,4833
-< 5,S,Unknown,50,4833
-< 5,I,Carriage,150,4833
-< 5,I,Diseased carriage,30,4833
-< 5,I,IPD,106,4833
-< 5,I,Unknown,13,4833
-< 5,R,Carriage,33,4833
-< 5,R,Diseased carriage,11,4833
-< 5,R,IPD,49,4833
-< 5,R,Unknown,5,4833
->=5 - <=65,S,Carriage,561,15851
->=5 - <=65,S,Diseased carriage,34,15851
->=5 - <=65,S,IPD,14905,15851
->=5 - <=65,S,Non-invasive disease,8,15851
->=5 - <=65,S,Unknown,82,15851
->=5 - <=65,I,Carriage,4,15851
->=5 - <=65,I,Diseased carriage,2,15851
->=5 - <=65,I,IPD,163,15851
->=5 - <=65,I,Non-invasive disease,4,15851
->=5 - <=65,I,Unknown,19,15851
->=5 - <=65,R,Carriage,1,15851
->=5 - <=65,R,Diseased carriage,3,15851
->=5 - <=65,R,IPD,53,15851
->=5 - <=65,R,Unknown,12,15851
-> 65,S,IPD,1219,1362
-> 65,S,Non-invasive disease,4,1362
-> 65,S,Unknown,30,1362
-> 65,I,IPD,58,1362
-> 65,I,Non-invasive disease,1,1362
-> 65,I,Unknown,13,1362
-> 65,R,IPD,27,1362
-> 65,R,Unknown,10,1362
+< 5,S,Carriage,1575,4956
+< 5,S,Diseased carriage,73,4956
+< 5,S,IPD,2852,4956
+< 5,S,Non-invasive disease,3,4956
+< 5,S,Unknown,50,4956
+< 5,I,Carriage,150,4956
+< 5,I,Diseased carriage,30,4956
+< 5,I,IPD,112,4956
+< 5,I,Unknown,13,4956
+< 5,R,Carriage,33,4956
+< 5,R,Diseased carriage,11,4956
+< 5,R,IPD,49,4956
+< 5,R,Unknown,5,4956
+>=5 - <=65,S,Carriage,561,16445
+>=5 - <=65,S,Diseased carriage,34,16445
+>=5 - <=65,S,IPD,15463,16445
+>=5 - <=65,S,Non-invasive disease,8,16445
+>=5 - <=65,S,Unknown,82,16445
+>=5 - <=65,I,Carriage,4,16445
+>=5 - <=65,I,Diseased carriage,2,16445
+>=5 - <=65,I,IPD,196,16445
+>=5 - <=65,I,Non-invasive disease,4,16445
+>=5 - <=65,I,Unknown,19,16445
+>=5 - <=65,R,Carriage,1,16445
+>=5 - <=65,R,Diseased carriage,3,16445
+>=5 - <=65,R,IPD,56,16445
+>=5 - <=65,R,Unknown,12,16445
+> 65,S,IPD,1739,1909
+> 65,S,Non-invasive disease,4,1909
+> 65,S,Unknown,30,1909
+> 65,I,IPD,81,1909
+> 65,I,Non-invasive disease,1,1909
+> 65,I,Unknown,13,1909
+> 65,R,IPD,31,1909
+> 65,R,Unknown,10,1909

@@ -1,14 +1,19 @@
 Age_category,WGS_KAN_SIR,Manifest_category_tidy,n.x,n.y
-< 5,S,Carriage,1760,4838
-< 5,S,Diseased carriage,114,4838
-< 5,S,IPD,2893,4838
-< 5,S,Non-invasive disease,3,4838
-< 5,S,Unknown,68,4838
->=5 - <=65,S,Carriage,566,15855
->=5 - <=65,S,Diseased carriage,39,15855
->=5 - <=65,S,IPD,15125,15855
->=5 - <=65,S,Non-invasive disease,12,15855
->=5 - <=65,S,Unknown,113,15855
-> 65,S,IPD,1304,1362
-> 65,S,Non-invasive disease,5,1362
-> 65,S,Unknown,53,1362
+< 5,S,Carriage,1760,4961
+< 5,S,Diseased carriage,110,4961
+< 5,S,IPD,3011,4961
+< 5,S,Non-invasive disease,3,4961
+< 5,S,Unknown,68,4961
+< 5,R,Diseased carriage,4,4961
+< 5,R,IPD,5,4961
+>=5 - <=65,S,Carriage,566,16449
+>=5 - <=65,S,Diseased carriage,39,16449
+>=5 - <=65,S,IPD,15695,16449
+>=5 - <=65,S,Non-invasive disease,12,16449
+>=5 - <=65,S,Unknown,112,16449
+>=5 - <=65,R,IPD,24,16449
+>=5 - <=65,R,Unknown,1,16449
+> 65,S,IPD,1838,1909
+> 65,S,Non-invasive disease,5,1909
+> 65,S,Unknown,53,1909
+> 65,R,IPD,13,1909

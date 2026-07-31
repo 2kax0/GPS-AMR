@@ -582,9 +582,11 @@
 <rect x='1654.71' y='902.83' width='49.46' height='175.77' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #00BFFF;' />
 <rect x='1709.67' y='1010.77' width='49.46' height='67.82' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #00BFFF;' />
 <rect x='1764.62' y='969.83' width='49.46' height='86.85' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #00BFFF;' />
-<rect x='1764.62' y='1056.68' width='49.46' height='21.92' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #FF8C00;' />
-<rect x='1819.58' y='954.12' width='49.46' height='70.31' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #00BFFF;' />
-<rect x='1819.58' y='1024.42' width='49.46' height='54.18' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #FF8C00;' />
+<rect x='1764.62' y='1056.68' width='49.46' height='13.65' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #FF8C00;' />
+<rect x='1764.62' y='1070.33' width='49.46' height='8.27' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #808080;' />
+<rect x='1819.58' y='954.12' width='49.46' height='70.72' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #00BFFF;' />
+<rect x='1819.58' y='1024.84' width='49.46' height='21.92' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #FF8C00;' />
+<rect x='1819.58' y='1046.75' width='49.46' height='31.84' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #808080;' />
 <line x1='635.27' y1='1087.39' x2='635.27' y2='894.05' style='stroke-width: 1.07; stroke-dasharray: 5.69,5.69; stroke-linecap: butt;' />
 <line x1='1184.83' y1='1087.39' x2='1184.83' y2='894.05' style='stroke-width: 1.07; stroke-dasharray: 5.69,5.69; stroke-linecap: butt;' />
 <line x1='1734.40' y1='1087.39' x2='1734.40' y2='894.05' style='stroke-width: 1.07; stroke-dasharray: 5.69,5.69; stroke-linecap: butt;' />
