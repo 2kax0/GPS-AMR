@@ -2,23 +2,19 @@ library(tidyverse)
 library(scatterpie)
 library(ggpubr)
 library(meta)
-library(maps)
-library(ggpattern)
-library(sf)
-library(rnaturalearthdata)
+# library(maps)
+# library(sf)
 library(rnaturalearth)
-library(ggnewscale)
-library(ggpattern)
-library(USP)
 
 filter <- dplyr::filter
 rename <- dplyr::rename
 summarise <- dplyr::summarise
 
-# set working directory
-setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/raw data/")
+
 
 #-------------------------------------------- read in files -------------------------------------------
+# set working directory
+setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/raw data/")
 
 # monocle metadata
 full_metadata <- read_csv(file = "monocle-metadata-all-columns.csv")
@@ -166,7 +162,11 @@ metadata$resistogram <- paste(metadata$resistance_beta_lactam, metadata$WGS_CHL_
 # column to count MDR status (if at least 3 or more R or I are found = MDR)
 metadata$MDR <- ifelse(str_count(metadata$resistogram, 'R|I') > 2, "R", "S")
 
-
+metadata |>
+  filter(Continent %in% "Europe" & vaccine_binom %in% "POSTPCV13" & WGS_TET_SIR %in% "R" & WGS_ERY_SIR %in% "R" & !ermB %in% "NEG") |>
+  group_by(serotype_clean) |>
+  tally() |>
+  view()
 
 #----------------------------------------- Summary tables -----------------------------------------
 
@@ -206,10 +206,6 @@ write_csv(continent_manifest_supplementary, file = "continent manifest table.csv
 
 setwd("C:/Users/Max Choong/OneDrive/Desktop/GPS-AMR/raw data/")
 
-# initialise map and removing antarctica
-world_map <- map_data("world")
-world_map <- subset(world_map, region != "Antarctica")
-
 # tally table of number of isolates from each country, then rename for joining
 metadata_tally <- metadata |>
   group_by(Country_mapping) |>
@@ -233,8 +229,6 @@ world_annotated <- world_annotated |>
 
 # world map
 world_plot <- ggplot(data = world_annotated) +
-  geom_sf(fill = "white") +
-  new_scale_fill() +
   geom_sf(aes(fill = log10(n + 1))) +
   scale_fill_gradientn(colours = c("blue", "steelblue", "pink", "red"), na.value = "white", limits = c(0, 4.2)) +
   theme(
@@ -327,69 +321,6 @@ PCV25 <- vaccine_table |>
 pcv25_serotypes <- PCV25$serotype
 
 
-#----------------------------------------- gpsc/serotype plot -----------------------------------------
-# tally table of gpscs in the dataset
-GPSC_tally <- metadata |>
-  group_by(GPSC) |>
-  tally()
-
-# 40 most common gpsc in the dataset
-GPSC_40 <- GPSC_tally[order(GPSC_tally$n, decreasing = TRUE),] |>
-  filter(!is.na(GPSC) & !GPSC %in% "unknown") |>
-  slice_head(n = 40) 
-
-# save as vector
-n_40 <- unique(GPSC_40$GPSC)
-
-# classify as others
-tidy <- metadata |>
-  mutate(
-    GPSC_tidy = ifelse(GPSC %in% n_40, GPSC, "NA")
-  ) |>
-  filter(!In_silico_serotype %in% "_" & !is.na(GPSC_tidy)) |>
-  relocate(GPSC_tidy, .after = GPSC)
-
-
-
-# tally table of serotypes in the 40 most abundant gpsc 
-graph_dataset <- tidy |>
-  group_by(GPSC_tidy, serotype_clean) |>
-  tally()
-
-
-# join in colours
-graph_dataset <- left_join(graph_dataset, serotype_colours, by = "serotype_clean")
-
-serotype_colors_vector <- setNames(graph_dataset$In_silico_serotype__colour, graph_dataset$serotype_clean)
-
-# annotate vaccine types
-graph_dataset$vaccine <- ifelse(graph_dataset$serotype_clean %in% c(pcv7_serotypes, pcv10_serotypes, pcv13_serotypes), "VT", "NVT")
-
-# barchart
-#graph_dataset |>
-#  filter(!GPSC_tidy %in% "NA") |>
-#  ggplot() +
-#  (aes(x = as.factor(GPSC_tidy), y = n, fill = serotype_clean, pattern = vaccine)) +
-#  geom_col_pattern(
-#    pattern_spacing = 0.01, 
-#    pattern_fill = "black", 
-#    pattern_size = 0.5, 
-#    pattern_linetype = 0.5,
-#    pattern_key_scale_factor = 0.5,
-#    pattern_orientation = "vertical", show.legend = TRUE) +
-#  scale_fill_manual(name = "Serotype",
-#                    values = serotype_colors_vector,
-#                    guide = guide_legend(override.aes = list(pattern = "none"), ncol = 3)) +
-#  scale_pattern_manual(
-#    name = "Vaccine",
-#    values = c("NVT" = "stripe", "VT" = "none")
-#  )  +
-#  labs(
-#    title = "Serotype and antibiotic resistance within the 40 most abundant GPSCs",
-#    x = "GPSC",
-#    y = "Number of isolates",
-#    fill = "Serotype"
-#  )
 
 #----------------------------------------- year/manifest plot ----------------------------------------
 
@@ -451,7 +382,8 @@ continent_country_table <- metadata |>
 
 continent_manifest_table <- metadata |>
   group_by(Continent, Manifest_category) |>
-  tally() 
+  tally() |>
+  pivot_wider(names_from = Manifest_category, values_from = n)
 
 write_csv(continent_country_table, file = "summarised data/data overview/continent country table.csv")
 
@@ -470,7 +402,7 @@ antibiotic_join <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_CLI_SIR", "WG
 
 antibiotic_diverse_serotype <- c("WGS_PEN_SIR_Meningitis", "WGS_ERY_SIR", "WGS_TET_SIR", "WGS_CLI_SIR", "WGS_COT_SIR", "MDR")
 
-continent <- c("Africa", "North America", "South America", "Oceania", "Asia", "Europe")
+continent <- c("AFRICA", "NORTH AMERICA", "SOUTH AMERICA", "OCEANIA", "ASIA", "EUROPE", "Overall")
 
 period <- c("PREPCV13", "POSTPCV13")
 
@@ -483,7 +415,8 @@ dir.create("Proportion")
 
 
 analysis_proportion_df <- data.frame()
-analysis_proportion_df_complete <- data.frame()
+
+
 
 ### panel and forest plot for loops
 for(p in period){
@@ -1070,6 +1003,31 @@ for(p in period){
     dev.off()
   }
   
+  # overall
+  Overall <- complete |>
+    group_by(Country, !!sym((i))) |>
+    tally() |>
+    pivot_wider(names_from = !!sym((i)), values_from = n)
+  
+  overallpath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/overall forest.svg", sep = ""), fsep = "/")
+  
+  if(nrow(Overall) > 0){
+    if(!"R" %in% names(Overall)){Overall$R <- 0
+    Overall$total <- rowSums(Overall[, !colnames(Overall) %in% "Country"], na.rm = TRUE)
+    Overall[is.na(Overall)] <- 0
+    overallmeta <- metaprop(R, total, data = Overall) 
+    }
+  
+  else Overall$total <- rowSums(Overall[, !colnames(Overall) %in% "Country"], na.rm = TRUE)
+  Overall[is.na(Overall)] <- 0
+  overallmeta <- metaprop(R, total, data = Overall)
+  
+  svg(file = overallpath, width = 14.5, height = 18)
+  forest(overallmeta, comb.fixed = overallmeta$comb.fixed, comb.random = overallmeta$comb.random, 
+         overall = TRUE, studlab = Overall$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+  dev.off()
+  }
+  
   ### overview table of proportion resistance in each continent
   
   df_name <- paste(i, "_proportion", sep = "")
@@ -1099,18 +1057,21 @@ for(p in period){
   
   random_est_la_tr <- as.data.frame(t(backtransf(random_est_la, sm = "PLOGIT")))
   
+  random_est_overall <- c(overallmeta$TE.random, overallmeta$lower.random, overallmeta$upper.random)
+  
+  random_est_overall_tr <- as.data.frame(t(backtransf(random_est_overall, sm = "PLOGIT")))
+  
   
   # bind proportions for each continent into a singular dataframe
   proportion_table <- rbind(random_est_na_tr, random_est_eu_tr, random_est_af_tr,
-                            random_est_la_tr, random_est_as_tr, random_est_oce_tr)
+                            random_est_la_tr, random_est_as_tr, random_est_oce_tr, random_est_overall_tr)
   
   # create column for continent
   proportion_table <- proportion_table |>
     mutate(
       Continent = c("North America", "Europe", "Africa",
-                    "South America", "Asia", "Oceania")) |>
-    relocate(Continent) |>
-    head()
+                    "South America", "Asia", "Oceania", "Overall")) |>
+    relocate(Continent, .before = V1)
   
   # rename columns
   colnames(proportion_table) <- c("Continent", "Percentage", "Lower", "Upper")
@@ -1875,14 +1836,6 @@ write_csv(nvt_serotypes, file = "sample figures/nvt serotypes.csv")
 
 
 
-metadata |>
-  filter(resistance_beta_lactam %in% "R" & serotype_clean %in% pcv13_serotypes & vaccine_binom %in% "POSTPCV13") |>
-  group_by(Continent, GPSC, serotype_clean) |>
-  tally() |>
-  view()
-
-
-
 
 #------------------------------------ beta-lactam analysis and concordance between 3rd gen cephalosporins -------------------------------------
 
@@ -2310,6 +2263,69 @@ for(i in continent){
 }
 
 
+#----------------------------------------- gpsc/serotype plot -----------------------------------------
+# tally table of gpscs in the dataset
+GPSC_tally <- metadata |>
+  group_by(GPSC) |>
+  tally()
+
+# 40 most common gpsc in the dataset
+GPSC_40 <- GPSC_tally[order(GPSC_tally$n, decreasing = TRUE),] |>
+  filter(!is.na(GPSC) & !GPSC %in% "unknown") |>
+  slice_head(n = 40) 
+
+# save as vector
+n_40 <- unique(GPSC_40$GPSC)
+
+# classify as others
+tidy <- metadata |>
+  mutate(
+    GPSC_tidy = ifelse(GPSC %in% n_40, GPSC, "NA")
+  ) |>
+  filter(!In_silico_serotype %in% "_" & !is.na(GPSC_tidy)) |>
+  relocate(GPSC_tidy, .after = GPSC)
+
+
+
+# tally table of serotypes in the 40 most abundant gpsc 
+graph_dataset <- tidy |>
+  group_by(GPSC_tidy, serotype_clean) |>
+  tally()
+
+
+# join in colours
+graph_dataset <- left_join(graph_dataset, serotype_colours, by = "serotype_clean")
+
+serotype_colors_vector <- setNames(graph_dataset$In_silico_serotype__colour, graph_dataset$serotype_clean)
+
+# annotate vaccine types
+graph_dataset$vaccine <- ifelse(graph_dataset$serotype_clean %in% c(pcv7_serotypes, pcv10_serotypes, pcv13_serotypes), "VT", "NVT")
+
+# barchart
+#graph_dataset |>
+#  filter(!GPSC_tidy %in% "NA") |>
+#  ggplot() +
+#  (aes(x = as.factor(GPSC_tidy), y = n, fill = serotype_clean, pattern = vaccine)) +
+#  geom_col_pattern(
+#    pattern_spacing = 0.01, 
+#    pattern_fill = "black", 
+#    pattern_size = 0.5, 
+#    pattern_linetype = 0.5,
+#    pattern_key_scale_factor = 0.5,
+#    pattern_orientation = "vertical", show.legend = TRUE) +
+#  scale_fill_manual(name = "Serotype",
+#                    values = serotype_colors_vector,
+#                    guide = guide_legend(override.aes = list(pattern = "none"), ncol = 3)) +
+#  scale_pattern_manual(
+#    name = "Vaccine",
+#    values = c("NVT" = "stripe", "VT" = "none")
+#  )  +
+#  labs(
+#    title = "Serotype and antibiotic resistance within the 40 most abundant GPSCs",
+#    x = "GPSC",
+#    y = "Number of isolates",
+#    fill = "Serotype"
+#  )
 
 
 
@@ -3068,17 +3084,9 @@ metadata_age_manifest |>
 
 
 
-
-
-
-
-
-
-
-
 #--------------------------- complete pooled proportion ---------------------------
 
-dir.create(path = "pooled plots")
+dir.create(path = "Proportion/pooled plots")
 
 ### panel and forest plot for loops
 for(i in antibiotic){
@@ -3087,7 +3095,7 @@ for(i in antibiotic){
   tidy_dataset <- metadata |> filter(!!((sym(i))) %in% c("S", "I", "R"))
   
   ### create new directory for each looped variable
-  newdir <- paste0("pooled plots/", i, " plots")
+  newdir <- paste0("Proportion/pooled plots/", i, " plots")
   
   dir.create(newdir)
   
@@ -3487,7 +3495,7 @@ for(i in antibiotic){
   
   # forest plots
   
-  newdir <- paste0("pooled plots/", i, " forest plot")
+  newdir <- paste0("Proportion/pooled plots/", i, " forest plot")
   
   dir.create(newdir)
   
@@ -3640,6 +3648,29 @@ for(i in antibiotic){
          overall = TRUE, studlab = Oceania$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
   dev.off()
   
+  # overall
+  Overall <- complete |>
+    group_by(Country, !!sym((i))) |>
+    tally() |>
+    pivot_wider(names_from = !!sym((i)), values_from = n)
+  
+  overallpath <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", paste(newdir, "/overall forest.svg", sep = ""), fsep = "/")
+  
+  if(!"R" %in% names(Overall)){Overall$R <- 0
+  Overall$total <- rowSums(Overall[, !colnames(Overall) %in% "Country"], na.rm = TRUE)
+  Overall[is.na(Overall)] <- 0
+  overallmeta <- metaprop(R, total, data = Overall) 
+  }
+  
+  else Overall$total <- rowSums(Overall[, !colnames(Overall) %in% "Country"], na.rm = TRUE)
+  Overall[is.na(Overall)] <- 0
+  overallmeta <- metaprop(R, total, data = Overall)
+  
+  svg(file = overallpath, width = 14.5, height = 2.5)
+  forest(overallmeta, comb.fixed = overallmeta$comb.fixed, comb.random = overallmeta$comb.random, 
+         overall = TRUE, studlab = Overall$Country, plotwidth=unit(8, "cm"), xlim = c(0, 1), colgap.forest = "2.5cm", fontsize = 14)
+  dev.off()
+  
   
   ### overview table of proportion resistance in each continent
   
@@ -3726,7 +3757,7 @@ colnames(complete_proportion_table) <- c("Continent", "Amoxicillin", "Penicillin
                                          "Tetracycline", "Co-trimoxazole", "MDR")
 
 # save proportion table for each antibiotic into their respective folder
-complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "pooled plots", "/complete proportion.csv", fsep = "/")
+complete_proportion_path <- file.path("/Users", "Max Choong", "OneDrive", "Desktop", "GPS-AMR", "figures", "Proportion", "pooled plots", "/complete proportion.csv", fsep = "/")
 
 write_csv(complete_proportion_table, file = complete_proportion_path)
 
