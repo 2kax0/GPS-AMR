@@ -1,0 +1,54 @@
+﻿In_silico_serotype,serotype_clean
+6A(6A-I),6A
+6A(6A-II),6A
+6A(6A-III),6A
+6A(6A-IV),6A
+6A(6A-V),6A
+6A(6A-VI),6A
+6E(6A),6A
+06A,6A
+06A(06A-I),6A
+6B(6B-I),6B
+6B(6B-II),6B
+06B,6B
+6E(6B),6B
+06C,6C
+06D,6D
+07C,7C
+07F,7F
+09L,9L
+09N,9N
+09V,9V
+11A(11F_LIKE),11A
+11A(11F_like),11A
+11A/11B/11C/11D/11E/11F/11F_LIKE,Serogroup 11
+15B,15B/15C
+15C,15B/15C
+19A(19A-I),19A
+19A(19A-I/19A-II),19A
+19A(19A-II),19A
+19F(19AF),19F
+19AF,19F
+19F(19F-II),19F
+19F(19F-III),19F
+19F(19F-IV),19F
+23B1,23B
+23B(23B1),23B
+33F(33F-1A),33F
+33F(33F-1B),33F
+NCC1_PSPK_NON_ENCAPSULATED,non-encapsulated
+NCC2_ALIC_ALID_NON_ENCAPSULATED,non-encapsulated
+NCC2_S_MITIS_ALIC_ALID_NON_ENCAPSULATED,non-encapsulated
+NCC2_aliC_aliD_non_encapsulated,non-encapsulated
+NCC2_S_mitis_aliC_aliD_non_encapsulated,non-encapsulated
+"possible 06D	 but wciP gene might not be complete",non-encapsulated
+SWISS_NT,untypable
+UNTYPABLE,untypable
+SEROBA FAILURE,untypable
+ALTERNATIVE_ALIB_NT,untypable
+COVERAGE TOO LOW,untypable
+POSSIBLE 6A,untypable
+POSSIBLE 6D,untypable
+POSSIBLE 6E,untypable
+POSSIBLE 6C,untypable
+SEROGROUP 24,Serogroup 24
